@@ -1,0 +1,564 @@
+/* Base Typography */
+body, button, input, select, textarea,
+.nav-item, .label-text, .event-item, .filter * {
+  font-size: var(--fs-14);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+}
+
+/* Reset and Globals */
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+ body {
+  margin: 0;
+  background: #f0f4ff;
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: #ffffff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e0e0e0;
+}
+.sidebar .logo {
+  width: 140px;
+  margin-bottom: 30px;
+}
+.sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.sidebar .nav-item:hover,
+.sidebar .nav-item.active {
+  background: #f0f4ff;
+  color: #1a73e8;
+}
+.sidebar .logout {
+  margin-top: auto;
+  color: #e53935;
+  cursor: pointer;
+}
+
+/* Main Layout */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar */
+.topbar {
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 0 20px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+}
+
+/* Profile */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile img {
+  width: 36px;
+  border-radius: 50%;
+}
+.content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+.filter {
+  width: 40%;
+  background: #fff;
+  overflow-y: auto;
+  border-right: 1px solid #eee;
+  padding: 20px;
+}
+
+#event-list {
+    background-image: url('/assets/images/pcu-building.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    
+}
+.backdrop-filter {
+    background-color: rgba(255, 255, 255, 0.759)!important;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.filter h3 {
+  font-size: 1.5rem;
+  margin-bottom: -10px;
+  color: #333;
+}
+.filter h2 {
+  font-size: 1.0rem;
+  padding-top: 20px;
+  margin-bottom: -10px;
+  color: #333;
+}
+
+.filter select {
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 100%;
+  height: 40px;
+}
+.filter input[type="text"] {
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 100%;
+}
+
+
+
+.event-actions button {
+  padding: 10px 15px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #1a73e8;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.event-actions button:hover {
+  background: #155ac2;
+}
+
+
+#event-list {
+  display: grid;
+  grid-template-columns: repeat(2, 2fr);
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto; 
+
+  
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #dbeafe; /* light blue border */
+  overflow: hidden;
+  height: 100%;
+  min-height: 600px;
+  max-height: 400px; /* Make max = min */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.05); /* blue shadow */
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15); /* soft blue hover */
+  transform: translateY(-2px);
+}
+
+.card-image img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.card-content {
+  padding: 20px;
+}
+
+.card-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e3a8a; /* dark blue */
+  margin-bottom: 4px;
+}
+
+.date-time {
+  font-size: 0.875rem;
+  color: #475569; /* slate-600 */
+  margin-bottom: 12px;
+}
+
+.description {
+  font-size: 0.95rem;
+  color: #334155; /* slate-700 */
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+
+
+.meta {
+  font-size: 0.85rem;
+  color: #475569; /* slate-600 */
+  margin-bottom: 4px;
+}
+
+.card-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn.edit {
+  background-color: #3b82f6; /* blue-500 */
+  color: white;
+}
+
+.btn.edit:hover {
+  background-color: #2563eb; /* blue-600 */
+}
+
+.btn.delete {
+  background-color: #ef4444; /* red-500 */
+  color: white;
+}
+
+.btn.delete:hover {
+  background-color: #dc2626; /* red-600 */
+}
+
+/* Status Badges – minimalist blue style */
+.event-ended,
+.event-ongoing,
+.event-upcoming {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Ended – soft gray-blue */
+.event-ended {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #64748b; /* slate-500 */
+}
+
+/* Ongoing – subtle green */
+.event-ongoing {
+  background-color: #4ade80; /* green-400 */
+  color: white;
+}
+
+/* Upcoming – soft blue */
+.event-upcoming {
+  background-color: #93c5fd; /* blue-300 */
+  color: #1e3a8a; /* blue-900 for contrast */
+}
+
+
+.clear-btn {
+  margin-top: 10px;
+  padding: 6px 12px;
+  background-color: #ccc;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.clear-btn:hover {
+  background-color: #aaa;
+}
+
+
+
+@media (max-width: 1024px) {
+
+  #event-list {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 15px;
+    
+  }
+
+}
+
+
+/* Mobile Styles */
+/* Floating Sidebar Menu for Mobile */
+
+/* Add hamburger menu icon for mobile */
+.mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: #222; /* Dark theme */
+  color: white;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+  background-color: #333;
+  transform: scale(1.05);
+}
+
+.mobile-menu-toggle span {
+  position: relative;
+  display: block;
+  width: 26px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease-in-out;
+}
+
+.mobile-menu-toggle span::before,
+.mobile-menu-toggle span::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 26px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease-in-out;
+}
+
+.mobile-menu-toggle span::before {
+  top: -8px;
+}
+
+.mobile-menu-toggle span::after {
+  top: 8px;
+}
+
+/* Open State */
+.mobile-menu-toggle.open span {
+  background-color: transparent;
+}
+
+.mobile-menu-toggle.open span::before {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+.mobile-menu-toggle.open span::after {
+  transform: rotate(-45deg);
+  top: 0;
+}
+
+/* Show on mobile */
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+}
+
+
+/* Update the media query for mobile devices */
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+    height: auto;
+  }
+
+   #event-list {
+    background-image: none;
+    background-color: transparent; /* Optional fallback */
+    background-color: #e5e7eb;
+  }
+
+  /* Default: hide hidden filters on mobile */
+.hidden-filters {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* When 'show' class is added */
+.hidden-filters.show {
+  display: flex;
+}
+
+/* Style the toggle button */
+.filter-toggle-btn {
+  margin: 15px 0;
+  background-color: #2196f3;
+  color: #fff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.filter-toggle-btn:hover {
+  background-color: #1976d2;
+}
+
+  .sidebar .logout {
+    margin-top: 0; /* Remove auto margin */
+  }
+
+  
+  /* Hide the sidebar by default on mobile */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -240px; /* Start off-screen */
+    width: 240px;
+    height: 100vh;
+    background: #ffffff;
+    z-index: 999;
+    transition: left 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    border-right: 1px solid #e0e0e0;
+    border-bottom: none;
+    overflow-y: auto;
+  }
+  
+  /* Show the sidebar when it has the 'open' class */
+  .sidebar.open {
+    left: 0;
+  }
+  
+  /* Show the mobile menu toggle button */
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  /* Add overlay when menu is open */
+  .menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
+  
+  .menu-overlay.active {
+    display: block;
+  }
+  
+  /* Adjust main content */
+  .main {
+    max-width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding-left: 0;
+  }
+  
+  .topbar {
+    text-align: center;
+    padding: 15px;
+    height: auto;
+    position: relative;
+  }
+  .topbar img, span {
+    display: none;
+  }
+  
+  .content {
+    height: auto;
+    min-height: calc(100vh - 60px);
+    flex-direction: column;
+
+  }
+  
+  .event-form {
+    padding-bottom: 70px; /* Increased to account for floating button */
+  }
+  
+  .filter {
+    width: 100%;
+
+  }
+
+}
+
+@media (min-width: 769px) {
+  .hidden-filters {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  .filter-toggle-btn {
+    display: none;
+  }
+}
+
+  .swal2-confirm.btn-blue {
+    background-color: #007bff !important; /* Blue color */
+    border-color: #007bff !important;
+  }
+  .swal2-confirm.btn-blue:hover {
+    background-color: #0056b3 !important; /* Darker blue on hover */
+    border-color: #0056b3 !important;
+  }
+
+  /* Optional: Style the cancel button */
+  .swal2-cancel.btn-cancel {
+    background-color: #f0f0f0 !important;
+    color: #333 !important;
+  }
+

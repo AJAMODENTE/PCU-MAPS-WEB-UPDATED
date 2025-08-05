@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Buildings</title>
+    <link rel="stylesheet" href="/assets/css/style2.css" />
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/hamburger_menu.js"></script>
+    <script type="module" src="/includes/authguard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script type="module" src="/includes/user.js"></script>
+  </head>
+  <body>
+    <div class="sidebar">
+      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/relocation/location.html" class="nav-item active">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a class="nav-item logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Buildings</h1>
+          <div class="profile">
+          </div>
+      </div>
+
+      <div class="content">
+        <h2>Add New Building</h2>
+        <div class="form-section">
+          <input type="text" id="buildingName" placeholder="Building Name" />
+          <button id="addBuildingBtn">Add Building</button>
+        </div>
+
+        <div class="buildings-list" id="buildingsList"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        push,
+        set,
+        update,
+        remove,
+        onValue,
+      } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+        authDomain: "pcu-maps-5d985.firebaseapp.com",
+        databaseURL:
+          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "pcu-maps-5d985",
+        storageBucket: "pcu-maps-5d985.appspot.com",
+        messagingSenderId: "922913954447",
+        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const buildingsList = document.getElementById("buildingsList");
+
+      // Add Building
+      document
+        .getElementById("addBuildingBtn")
+        .addEventListener("click", () => {
+          const name = document.getElementById("buildingName").value.trim();
+          if (name) {
+            const newBuildingRef = push(ref(db, "buildings"));
+            set(newBuildingRef, {
+              name,
+              createdAt: new Date().toISOString(),
+            }).then(() => {
+              Swal.fire("Success!", "Building added!", "success");
+              document.getElementById("buildingName").value = "";
+            });
+          } else {
+            Swal.fire("Oops!", "Please enter a building name.", "error");
+          }
+        });
+
+      // Realtime display
+      onValue(ref(db, "buildings"), (snapshot) => {
+        buildingsList.innerHTML = "";
+        const data = snapshot.val();
+        if (data) {
+          Object.entries(data).forEach(([buildingId, building]) => {
+            const buildingDiv = document.createElement("div");
+            buildingDiv.classList.add("building");
+
+            let floorsHTML = "";
+            if (building.floors) {
+              Object.entries(building.floors).forEach(([floorId, floor]) => {
+                const roomsHTML = floor.rooms
+                  ? Object.entries(floor.rooms)
+                      .map(
+                        ([roomId, room]) => `
+                    <div class="room">
+                      Room: ${room.roomName} (${room.description})
+                      <button onclick="editRoom('${buildingId}', '${floorId}', '${roomId}', '${room.roomName}', '${room.description}')">Edit</button>
+                      <button onclick="deleteRoom('${buildingId}', '${floorId}', '${roomId}')">Delete</button>
+                    </div>
+                  `
+                      )
+                      .join("")
+                  : "";
+
+                floorsHTML += `
+                <button class="accordion">Floor ${floor.floorNumber}</button>
+                <div class="panel">
+                  <button onclick="editFloor('${buildingId}', '${floorId}', '${floor.floorNumber}')">Edit Floor</button>
+                  <button onclick="deleteFloor('${buildingId}', '${floorId}')">Delete Floor</button>
+                  <button onclick="addRoom('${buildingId}', '${floorId}')">Add Room</button>
+                  <div class="rooms">${roomsHTML}</div>
+                </div>
+              `;
+              });
+            }
+
+            let noFloorRoomsHTML = "";
+            if (!building.floors && building.rooms) {
+              noFloorRoomsHTML = Object.entries(building.rooms)
+                .map(
+                  ([roomId, room]) => `
+              <div class="room">
+                Room: ${room.roomName} (${room.description})
+                <button onclick="editRoomNoFloor('${buildingId}', '${roomId}', '${room.roomName}', '${room.description}')">Edit</button>
+                <button onclick="deleteRoomNoFloor('${buildingId}', '${roomId}')">Delete</button>
+              </div>
+            `
+                )
+                .join("");
+            }
+
+            const addRoomNoFloorBtn =
+              !building.floors || Object.keys(building.floors).length === 0
+                ? `<button onclick="addRoomNoFloor('${buildingId}')">Add Room</button>`
+                : "";
+
+            buildingDiv.innerHTML = `
+            <button class="accordion">${building.name}</button>
+            <div class="panel">
+              <button onclick="editBuilding('${buildingId}', '${building.name}')">Edit Building</button>
+              <button onclick="deleteBuilding('${buildingId}')">Delete Building</button>
+              <button onclick="addFloor('${buildingId}')">Add Floor</button>
+              ${addRoomNoFloorBtn}
+              <div class="rooms">${noFloorRoomsHTML}</div>
+              <div class="floors">${floorsHTML}</div>
+            </div>
+          `;
+
+            buildingsList.appendChild(buildingDiv);
+          });
+        }
+      });
+
+      // Accordion toggle
+      document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("accordion")) {
+          e.target.classList.toggle("active");
+          const panel = e.target.nextElementSibling;
+          panel.style.display =
+            panel.style.display === "block" ? "none" : "block";
+        }
+      });
+
+      // Management Functions
+      window.editBuilding = (id, name) => {
+        Swal.fire({
+          title: "Edit Building Name",
+          input: "text",
+          inputValue: name,
+          showCancelButton: true,
+          confirmButtonText: "Save",
+          confirmButtonColor: "#007bff",
+          preConfirm: (newName) => {
+            if (newName) {
+              update(ref(db, `buildings/${id}`), { name: newName });
+            }
+          },
+        });
+      };
+
+      window.deleteBuilding = (id) => {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Delete",
+          confirmButtonColor: "#007bff",
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            remove(ref(db, `buildings/${id}`));
+            Swal.fire("Deleted!", "Building has been deleted.", "success");
+          }
+        });
+      };
+
+      window.addFloor = (buildingId) => {
+        Swal.fire({
+          title: "Add Floor",
+          input: "number",
+          inputPlaceholder: "Floor number",
+          showCancelButton: true,
+          confirmButtonText: "Add Floor",
+          confirmButtonColor: "#007bff",
+          preConfirm: (floorNumber) => {
+            if (floorNumber) {
+              const newFloorRef = push(
+                ref(db, `buildings/${buildingId}/floors`)
+              );
+              set(newFloorRef, {
+                floorNumber: parseInt(floorNumber),
+                rooms: {},
+              });
+            }
+          },
+        });
+      };
+
+      window.editFloor = (buildingId, floorId, currentNumber) => {
+        Swal.fire({
+          title: "Edit Floor Number",
+          input: "number",
+          inputValue: currentNumber,
+          showCancelButton: true,
+          confirmButtonText: "Save",
+          confirmButtonColor: "#007bff",
+          preConfirm: (newNumber) => {
+            if (newNumber) {
+              update(ref(db, `buildings/${buildingId}/floors/${floorId}`), {
+                floorNumber: parseInt(newNumber),
+              });
+            }
+          },
+        });
+      };
+
+      window.deleteFloor = (buildingId, floorId) => {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Delete Floor",
+          confirmButtonColor: "#007bff",
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            remove(ref(db, `buildings/${buildingId}/floors/${floorId}`));
+            Swal.fire("Deleted!", "Floor has been deleted.", "success");
+          }
+        });
+      };
+
+      window.addRoom = (buildingId, floorId) => {
+        Swal.fire({
+          title: "Add Room",
+          html: `
+      <input id="room-name" class="swal2-input" placeholder="Room name">
+      <textarea id="room-desc" class="swal2-textarea" placeholder="Description"></textarea>
+    `,
+          showCancelButton: true,
+          confirmButtonText: "Add Room",
+          confirmButtonColor: "#007bff",
+          preConfirm: () => {
+            const name = document.getElementById("room-name").value;
+            const desc = document.getElementById("room-desc").value;
+            if (name) {
+              const newRoomRef = push(
+                ref(db, `buildings/${buildingId}/floors/${floorId}/rooms`)
+              );
+              set(newRoomRef, { roomName: name, description: desc || "" });
+            }
+          },
+        });
+      };
+
+      window.editRoom = (buildingId, floorId, roomId, name, desc) => {
+        Swal.fire({
+          title: "Edit Room",
+          html: `
+      <input id="room-name" class="swal2-input" value="${name}" placeholder="Room name">
+      <textarea id="room-desc" class="swal2-textarea" placeholder="Description">${desc}</textarea>
+    `,
+          showCancelButton: true,
+          confirmButtonText: "Update Room",
+          confirmButtonColor: "#007bff",
+          preConfirm: () => {
+            const newName = document.getElementById("room-name").value;
+            const newDesc = document.getElementById("room-desc").value;
+            if (newName) {
+              update(
+                ref(
+                  db,
+                  `buildings/${buildingId}/floors/${floorId}/rooms/${roomId}`
+                ),
+                {
+                  roomName: newName,
+                  description: newDesc || "",
+                }
+              );
+            }
+          },
+        });
+      };
+
+      window.deleteRoom = (buildingId, floorId, roomId) => {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "Delete this room?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Delete",
+          confirmButtonColor: "#007bff",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            remove(
+              ref(
+                db,
+                `buildings/${buildingId}/floors/${floorId}/rooms/${roomId}`
+              )
+            );
+            Swal.fire("Deleted!", "Room has been deleted.", "success");
+          }
+        });
+      };
+
+      window.addRoomNoFloor = (buildingId) => {
+        Swal.fire({
+          title: "Add Room",
+          html: `
+      <input id="room-name" class="swal2-input" placeholder="Room name">
+      <textarea id="room-desc" class="swal2-textarea" placeholder="Description"></textarea>
+    `,
+          showCancelButton: true,
+          confirmButtonText: "Add Room",
+          confirmButtonColor: "#007bff",
+          preConfirm: () => {
+            const name = document.getElementById("room-name").value;
+            const desc = document.getElementById("room-desc").value;
+            if (name) {
+              const newRoomRef = push(ref(db, `buildings/${buildingId}/rooms`));
+              set(newRoomRef, { roomName: name, description: desc || "" });
+            }
+          },
+        });
+      };
+
+      window.editRoomNoFloor = (buildingId, roomId, name, desc) => {
+        Swal.fire({
+          title: "Edit Room",
+          html: `
+      <input id="room-name" class="swal2-input" value="${name}" placeholder="Room name">
+      <textarea id="room-desc" class="swal2-textarea" placeholder="Description">${desc}</textarea>
+    `,
+          showCancelButton: true,
+          confirmButtonText: "Update Room",
+          confirmButtonColor: "#007bff",
+          preConfirm: () => {
+            const newName = document.getElementById("room-name").value;
+            const newDesc = document.getElementById("room-desc").value;
+            if (newName) {
+              update(ref(db, `buildings/${buildingId}/rooms/${roomId}`), {
+                roomName: newName,
+                description: newDesc || "",
+              });
+            }
+          },
+        });
+      };
+
+      window.deleteRoomNoFloor = (buildingId, roomId) => {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "Delete this room?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Delete",
+          confirmButtonColor: "#007bff",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            remove(ref(db, `buildings/${buildingId}/rooms/${roomId}`));
+            Swal.fire("Deleted!", "Room has been deleted.", "success");
+          }
+        });
+      };
+    </script>
+  </body>
+</html>

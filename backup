@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Events</title>
+  <link rel="stylesheet" href="/assets/css/style1.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/isotope/3.0.6/isotope.pkgd.min.js"></script>
+  <script type="module" src="/includes/logout.js" defer></script>
+</head>
+<body>
+  <div class="sidebar">
+    <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+    <a href="/pages/manage_events.html" class="nav-item active">Manage Events</a>
+    <a href="/pages/create_events.html" class="nav-item">Create Events</a>
+    <a href="#" class="nav-item">Map</a>
+    <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+    <a class="nav-item logout" alt="Logout" id="logout">Logout</a>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="profile">
+        <img src="/assets/images/admin-icon.png" alt="Admin" />
+        <span>Admin</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="filter">
+        <input type="text" placeholder="Search Events..." id="search-input" />
+
+        <select id="course-filter">
+          <option value="">Select Course</option>
+          <option value="BSIT">BSIT</option>
+          <option value="BSCS">BSCS</option>
+          <option value="BSA">BSA</option>
+          <option value="BSAIS">BSAIS</option>
+        </select>
+
+        <select id="department-filter">
+          <option value="">Select Department</option>
+          <option value="COI">COI</option>
+          <option value="COT">COT</option>
+          <option value="CBA">CBA</option>
+        </select>
+
+        <select id="event-type-filter">
+          <option value="">Select Type of Event</option>
+          <option value="Seminar">Seminar</option>
+          <option value="Workshop">Workshop</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Conference">Conference</option>
+          <option value="Exhibition">Exhibition</option>
+          <option value="Training">Training</option>
+          <option value="Webinar">Webinar</option>
+          <option value="Orientation">Orientation</option>
+          <option value="Graduation">Graduation</option>
+          <option value="Sports">Sports</option>
+          <option value="Cultural">Cultural</option>
+          <option value="Social">Social</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <h3>Select Location</h3>
+        <form>
+          <div class="location-group">
+            <div class="location-option">
+              <input type="radio" name="location" value="All" id="location-all">
+              <label for="location-all">All Locations</label>
+            </div>
+            <div class="location-option">
+              <input type="radio" name="location" value="Gymnasium" id="location-gym">
+              <label for="location-gym">Gymnasium</label>
+            </div>
+            <div class="location-option">
+              <input type="radio" name="location" value="New Academic Building" id="location-newacad">
+              <label for="location-newacad">New Academic Building</label>
+            </div>
+            <div class="location-option">
+              <input type="radio" name="location" value="Old Academic Building" id="location-oldacad">
+              <label for="location-oldacad">Old Academic Building</label>
+            </div>
+            <div class="location-option">
+              <input type="radio" name="location" value="Library" id="location-library">
+              <label for="location-library">Library</label>
+            </div>
+            <div class="location-option">
+              <input type="radio" name="location" value="Cafeteria" id="location-cafeteria">
+              <label for="location-cafeteria">Cafeteria</label>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="backdrop-filter">
+        <div id="event-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, get, remove } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+      authDomain: "pcu-maps-5d985.firebaseapp.com",
+      databaseURL: "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "pcu-maps-5d985",
+      storageBucket: "pcu-maps-5d985.appspot.com",
+      messagingSenderId: "922913954447",
+      appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa"
+    };
+
+    let app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    function fetchEvents() {
+      const eventListRef = ref(db, 'events');
+      const eventListDiv = document.getElementById("event-list");
+
+      get(eventListRef).then((snapshot) => {
+        eventListDiv.innerHTML = '';
+        const events = snapshot.val();
+        if (!events) {
+          eventListDiv.innerHTML = "<p>No events available.</p>";
+          return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const sortedEvents = Object.entries(events).sort((a, b) => (
+          new Date(a[1].selected_date) - new Date(b[1].selected_date)
+        ));
+
+        sortedEvents.forEach(([eventId, event]) => {
+          const div = document.createElement("div");
+          div.className = "event-item";
+          div.setAttribute("data-course", (event.course || '').toUpperCase());
+          div.setAttribute("data-department", (event.department || '').toUpperCase());
+          div.setAttribute("data-event-type", event.event_type || '');
+          div.setAttribute("data-location", event.location || '');
+
+          div.innerHTML = `
+            ${new Date(event.selected_date) < new Date(today) ? '<div class="event-ended">Event Ended</div>' : ''}
+            <h2>${event.event_title}</h2>
+            <p>${event.event_description}</p>
+            <p>Date: ${event.selected_date}</p>
+            <p>Time: ${event.start_time} - ${event.end_time}</p>
+            <p>Department: ${event.department}</p>
+            <p>Course: ${event.course}</p>
+            <p>Location: ${event.location}</p>
+            <p>Event Type: ${event.event_type}</p>
+            <div class="button-container">
+              <button onclick="window.location.href='/pages/edit_events.html?eventId=${eventId}'">Edit</button>
+              <button onclick="deleteEvent('${eventId}')">Delete</button>
+            </div>
+          `;
+          eventListDiv.appendChild(div);
+        });
+
+        initIsotopeFiltering();
+      });
+    }
+
+    function deleteEvent(eventId) {
+      const eventRef = ref(db, 'events/' + eventId);
+      remove(eventRef).then(() => {
+        alert("Event deleted successfully!");
+        fetchEvents();
+      });
+    }
+
+    window.deleteEvent = deleteEvent;
+    window.onload = fetchEvents;
+
+    function initIsotopeFiltering() {
+      const grid = document.querySelector('#event-list');
+      const iso = new Isotope(grid, {
+        itemSelector: '.event-item',
+        layoutMode: 'fitRows'
+      });
+
+      function getFilter() {
+        const course = document.querySelector('#course-filter').value;
+        const department = document.querySelector('#department-filter').value;
+        const eventType = document.querySelector('#event-type-filter').value;
+        const location = document.querySelector('input[name="location"]:checked')?.value || '';
+
+        let filter = '';
+        if (course) filter += `[data-course="${course.toUpperCase()}"]`;
+        if (department) filter += `[data-department="${department.toUpperCase()}"]`;
+        if (eventType) filter += `[data-event-type="${eventType}"]`;
+        if (location && location !== 'All') filter += `[data-location="${location}"]`;
+        return filter || '*';
+      }
+
+      ['#course-filter', '#department-filter', '#event-type-filter'].forEach(selector => {
+        document.querySelector(selector).addEventListener('change', () => {
+          iso.arrange({ filter: getFilter() });
+        });
+      });
+
+      document.querySelectorAll('input[name="location"]').forEach(input => {
+        input.addEventListener('change', () => {
+          iso.arrange({ filter: getFilter() });
+        });
+      });
+
+      const searchInput = document.querySelector('#search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const searchText = searchInput.value.toLowerCase();
+          iso.arrange({
+            filter: function (itemElem) {
+              const text = itemElem.textContent.toLowerCase();
+              return text.includes(searchText) && itemElem.matches(getFilter());
+            }
+          });
+        });
+      }
+    }
+  </script>
+</body>
+</html>

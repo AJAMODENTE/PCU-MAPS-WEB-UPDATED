@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Events</title>
+    <link rel="stylesheet" href="/assets/css/style3.css" />
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/hamburger_menu.js"></script>
+    <script type="module" src="/includes/authguard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script type="module" src="/includes/user.js"></script>
+  </head>
+  <body>
+    <div class="sidebar">
+      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/pages/create_events.html" class="nav-item active"
+        >Create Events</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a class="nav-item logout" alt="Logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Create Events</h1>
+        <div class="profile">
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="event-form">
+          <div class="form-body">
+            <div class="left-panel">
+              <div class="image-placeholder">
+                <div class="image-box" id="preview-box">Image</div>
+                <input
+                  type="file"
+                  id="image-input"
+                  accept="image/*"
+                  style="display: none"
+                />
+                <div class="image-buttons">
+                  <button class="upload-btn" id="upload-btn">
+                    Upload Image
+                  </button>
+                  <button class="delete-btn" id="delete-btn">
+                    Delete Image
+                  </button>
+                </div>
+              </div>
+
+              <label>Select location</label>
+              <select id="building-select">
+                <option value="">Select Building</option>
+              </select>
+
+              <select id="floor-select">
+                <option value="">Select Floor</option>
+              </select>
+
+              <select id="room-select">
+                <option value="">Select Room</option>
+              </select>
+            </div>
+
+            <div class="right-panel">
+              <label for="event-title">Event Title</label>
+              <input
+                type="text"
+                id="event-title"
+                placeholder="Enter event title"
+              />
+
+              <label for="event-description">Event Description</label>
+              <textarea
+                id="event-description"
+                placeholder="Enter Event Description"
+              ></textarea>
+
+              <label for="selected-date">Select Date</label>
+              <input type="date" id="selected-date" name="selected-date" />
+
+              <div class="time-picker">
+                <label for="start-time">Start Time:</label>
+                <input id="start-time" type="time" /><br />
+                <label for="end-time">End Time:</label>
+                <input id="end-time" type="time" /><br />
+              </div>
+
+              <button class="create-event-btn" id="create-event-btn">
+                Create Event
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        initializeApp,
+        getApp,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        set,
+        push,
+        get,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import {
+        getStorage,
+        ref as sRef,
+        uploadBytes,
+        getDownloadURL,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+        authDomain: "pcu-maps-5d985.firebaseapp.com",
+        databaseURL:
+          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "pcu-maps-5d985",
+        storageBucket: "pcu-maps-5d985.appspot.com",
+        messagingSenderId: "922913954447",
+        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
+      };
+
+      let app;
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+        console.log("Firebase already initialized:", error);
+        app = getApp();
+      }
+
+      const db = getDatabase(app);
+      const storage = getStorage(app);
+      const FALLBACK_IMAGE_URL = "/assets/images/pcuu.jpg";
+
+      const buildingSelect = document.getElementById("building-select");
+      const floorSelect = document.getElementById("floor-select");
+      const roomSelect = document.getElementById("room-select");
+      const title = document.getElementById("event-title");
+      const description = document.getElementById("event-description");
+      const date = document.getElementById("selected-date");
+      const startTime = document.getElementById("start-time");
+      const endTime = document.getElementById("end-time");
+      const button = document.getElementById("create-event-btn");
+      const imageInput = document.getElementById("image-input");
+      const previewBox = document.getElementById("preview-box");
+      const uploadBtn = document.getElementById("upload-btn");
+      const deleteBtn = document.getElementById("delete-btn");
+
+      // Hide floor and room selects by default
+      floorSelect.style.display = "none";
+      roomSelect.style.display = "none";
+
+      previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
+      previewBox.textContent = "";
+
+      // Load buildings
+      const buildingsRef = ref(db, "buildings");
+      get(buildingsRef)
+        .then((snapshot) => {
+          const buildings = snapshot.val();
+          if (buildings) {
+            Object.keys(buildings).forEach((buildingId) => {
+              const building = buildings[buildingId];
+              const option = document.createElement("option");
+              option.value = buildingId;
+              option.textContent = building.name;
+              buildingSelect.appendChild(option);
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading buildings:", error);
+          Swal.fire({
+            title: "Error",
+            text: "Failed to load buildings. Please refresh the page.",
+            icon: "error",
+          });
+        });
+
+      buildingSelect.addEventListener("change", async (event) => {
+        const selectedBuildingId = event.target.value;
+        floorSelect.innerHTML = '<option value="">Select Floor</option>';
+        roomSelect.innerHTML = '<option value="">Select Room</option>';
+        floorSelect.style.display = "none";
+        roomSelect.style.display = "none";
+
+        if (!selectedBuildingId) return;
+
+        try {
+          const floorSnap = await get(
+            ref(db, `buildings/${selectedBuildingId}/floors`)
+          );
+          const buildingRoomSnap = await get(
+            ref(db, `buildings/${selectedBuildingId}/rooms`)
+          );
+
+          if (floorSnap.exists()) {
+            const floors = floorSnap.val();
+            floorSelect.style.display = "block";
+            Object.keys(floors).forEach((floorId) => {
+              const floor = floors[floorId];
+              const option = document.createElement("option");
+              option.value = floorId;
+              option.textContent = `Floor ${floor.floorNumber}`;
+              floorSelect.appendChild(option);
+            });
+          }
+
+          if (buildingRoomSnap.exists()) {
+            const rooms = buildingRoomSnap.val();
+            roomSelect.style.display = "block";
+            Object.keys(rooms).forEach((roomId) => {
+              const room = rooms[roomId];
+              const option = document.createElement("option");
+              option.value = roomId;
+              option.textContent = room.roomName;
+              roomSelect.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error("Error loading floors/rooms:", error);
+        }
+      });
+
+      floorSelect.addEventListener("change", async (event) => {
+        const selectedBuildingId = buildingSelect.value;
+        const selectedFloorId = event.target.value;
+        roomSelect.innerHTML = '<option value="">Select Room</option>';
+        roomSelect.style.display = "none";
+
+        if (!selectedFloorId) return;
+
+        try {
+          const roomSnap = await get(
+            ref(
+              db,
+              `buildings/${selectedBuildingId}/floors/${selectedFloorId}/rooms`
+            )
+          );
+          if (roomSnap.exists()) {
+            const rooms = roomSnap.val();
+            roomSelect.style.display = "block";
+            Object.keys(rooms).forEach((roomId) => {
+              const room = rooms[roomId];
+              const option = document.createElement("option");
+              option.value = roomId;
+              option.textContent = room.roomName;
+              roomSelect.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error("Error loading rooms:", error);
+        }
+      });
+
+      button.addEventListener("click", async () => {
+        const selectedBuilding = buildingSelect.value;
+        const selectedFloor =
+          floorSelect.style.display !== "none" ? floorSelect.value : "";
+        const selectedRoom =
+          roomSelect.style.display !== "none" ? roomSelect.value : "";
+
+        if (
+          !title.value ||
+          !date.value ||
+          !startTime.value ||
+          !endTime.value ||
+          !selectedBuilding ||
+          !description.value
+        ) {
+          Swal.fire({
+            title: "Missing Information!",
+            text: "Please fill in all required fields.",
+            icon: "warning",
+            confirmButtonText: "OK",
+          });
+          return;
+        }
+
+        // Show loading state
+        button.disabled = true;
+        button.textContent = "Creating...";
+        let imageWasUploaded = false;
+
+        try {
+          let readableLocation = "";
+          const buildingSnap = await get(
+            ref(db, `buildings/${selectedBuilding}`)
+          );
+          const buildingName = buildingSnap.val()?.name || selectedBuilding;
+
+          if (selectedFloor && selectedRoom) {
+            const floorSnap = await get(
+              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
+            );
+            const roomSnap = await get(
+              ref(
+                db,
+                `buildings/${selectedBuilding}/floors/${selectedFloor}/rooms/${selectedRoom}`
+              )
+            );
+            readableLocation = `${buildingName} - Floor ${
+              floorSnap.val()?.floorNumber
+            } - ${roomSnap.val()?.roomName}`;
+          } else if (selectedFloor) {
+            const floorSnap = await get(
+              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
+            );
+            readableLocation = `${buildingName} - Floor ${
+              floorSnap.val()?.floorNumber
+            }`;
+          } else if (selectedRoom) {
+            const roomSnap = await get(
+              ref(db, `buildings/${selectedBuilding}/rooms/${selectedRoom}`)
+            );
+            readableLocation = `${buildingName} - ${roomSnap.val()?.roomName}`;
+          } else {
+            readableLocation = buildingName;
+          }
+
+          // Create the event reference first
+          const newEventRef = push(ref(db, "events"));
+          const newEventKey = newEventRef.key;
+          let imageURL = FALLBACK_IMAGE_URL;
+
+          // Handle image upload
+          const file = imageInput.files[0];
+          if (file) {
+            try {
+              // Create a Base64 representation of the image
+              const base64Image = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+
+              // Store image directly in Firebase Database instead of Storage
+              // This bypasses CORS issues for development
+              // Note: This approach is only recommended for development
+              // For production, you should configure CORS on Firebase Storage
+
+              // Save the image data alongside the event
+              imageURL = base64Image;
+              imageWasUploaded = true;
+              console.log("Image converted to Base64 for storage in database");
+
+              /* Original Storage approach - commented out due to CORS issues
+            console.log("Uploading image:", file.name);
+            const storageRef = sRef(storage, `event-images/${newEventKey}/${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            imageURL = await getDownloadURL(snapshot.ref);
+            console.log("Image uploaded successfully:", imageURL);
+            */
+            } catch (err) {
+              console.error("Image processing failed:", err);
+              Swal.fire({
+                title: "Image Upload Failed",
+                text: "Event will be created without the custom image.",
+                icon: "warning",
+                timer: 3000,
+              });
+            }
+          }
+
+          // Create event data
+          const eventData = {
+            event_title: title.value,
+            event_description: description.value,
+            selected_date: date.value,
+            start_time: startTime.value,
+            end_time: endTime.value,
+            location: readableLocation,
+            image_url: imageURL,
+            has_base64_image: imageWasUploaded, // Flag to indicate if we're using a base64 image
+            created_at: new Date().toISOString(),
+          };
+
+          console.log("Saving event with data:", {
+            ...eventData,
+            image_url: imageWasUploaded
+              ? "BASE64_IMAGE_DATA (not shown for brevity)"
+              : eventData.image_url,
+          });
+
+          // Save to database
+          await set(newEventRef, eventData);
+
+          // Show success message
+          Swal.fire({
+            title: "Event Created!",
+            icon: "success",
+            showConfirmButton: false,
+            timer: 1500,
+            timerProgressBar: true,
+          });
+
+          // Reset form
+          title.value = "";
+          description.value = "";
+          date.value = "";
+          startTime.value = "";
+          endTime.value = "";
+          imageInput.value = "";
+          buildingSelect.value = "";
+          floorSelect.innerHTML = '<option value="">Select Floor</option>';
+          roomSelect.innerHTML = '<option value="">Select Room</option>';
+          floorSelect.style.display = "none";
+          roomSelect.style.display = "none";
+          previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
+          previewBox.textContent = "";
+        } catch (error) {
+          console.error("Event creation error:", error);
+          Swal.fire({
+            title: "Error!",
+            text: "Failed to create event: " + error.message,
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        } finally {
+          // Reset button state
+          button.disabled = false;
+          button.textContent = "Create Event";
+        }
+      });
+
+      imageInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          // File size validation (max 2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            Swal.fire({
+              title: "File too large",
+              text: "Please select an image smaller than 2MB",
+              icon: "warning",
+            });
+            imageInput.value = "";
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            previewBox.style.backgroundImage = `url(${e.target.result})`;
+            previewBox.textContent = "";
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      uploadBtn.addEventListener("click", () => {
+        imageInput.click();
+      });
+
+      deleteBtn.addEventListener("click", () => {
+        imageInput.value = "";
+        previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
+        previewBox.textContent = "";
+      });
+    </script>
+  </body>
+</html>

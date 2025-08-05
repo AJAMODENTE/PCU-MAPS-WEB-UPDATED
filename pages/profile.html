@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account Settings</title>
+  <link rel="stylesheet" href="/assets/css/profile.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script type="module" src="/includes/authguard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+      authDomain: "pcu-maps-5d985.firebaseapp.com",
+      databaseURL: "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "pcu-maps-5d985",
+      storageBucket: "pcu-maps-5d985.firebasestorage.app",
+      messagingSenderId: "922913954447",
+      appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div class="profile-container">
+    <div class="profile-card">
+      <h2>Account Settings</h2>
+      <form id="accountSettingsForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" readonly />
+
+        <label for="newPassword">New Password:</label>
+        <input type="password" id="newPassword" placeholder="Enter new password" />
+
+        <label for="confirmPassword">Confirm Password:</label>
+        <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+
+        <button type="button" id="saveChangesBtn">Save Changes</button>
+       <button type="button" id="homeBtn">✕</button>
+
+      </form>
+    </div>
+  </div>
+
+
+  <script>
+    firebase.auth().onAuthStateChanged(function(user) {
+      const emailInput = document.getElementById("email");
+
+      if (user) {
+        emailInput.value = user.email;
+      } else {
+        emailInput.value = "No user signed in.";
+      }
+    });
+
+    document.getElementById("saveChangesBtn").addEventListener("click", function () {
+      const user = firebase.auth().currentUser;
+      const newPassword = document.getElementById("newPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (!newPassword || !confirmPassword) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Please fill in all password fields.',
+          confirmButtonText: 'Ok',
+          customClass: {
+            confirmButton: 'btn-blue'
+          }
+        });
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Passwords do not match.',
+          confirmButtonText: 'Ok',
+          customClass: {
+            confirmButton: 'btn-blue'
+          }
+        });
+        return;
+      }
+
+      if (user) {
+        user.updatePassword(newPassword).then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: 'Password updated successfully.',
+            confirmButtonText: 'Ok',
+            customClass: {
+              confirmButton: 'btn-blue'
+            }
+          });
+          document.getElementById("newPassword").value = "";
+          document.getElementById("confirmPassword").value = "";
+        }).catch(error => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error: ' + error.message,
+            confirmButtonText: 'Ok',
+            customClass: {
+              confirmButton: 'btn-blue'
+            }
+          });
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No authenticated user.',
+          confirmButtonText: 'Ok',
+          customClass: {
+            confirmButton: 'btn-blue'
+          }
+        });
+      }
+    });
+
+    document.getElementById("homeBtn").addEventListener("click", function () {
+      window.location.href = "/pages/manage_events.html";
+    });
+  </script>
+
+  <style>
+  .swal2-confirm.btn-blue {
+    background-color: #007bff !important; /* Blue color */
+    border-color: #007bff !important;
+  }
+  .swal2-confirm.btn-blue:hover {
+    background-color: #0056b3 !important; /* Darker blue on hover */
+    border-color: #0056b3 !important;
+  }
+</style>
+
+</body>
+</html>

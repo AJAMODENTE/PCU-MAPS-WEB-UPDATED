@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Events</title>
+    <link rel="stylesheet" href="/assets/css/style1.css" />
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/hamburger_menu.js"></script>
+    <script type="module" src="/includes/authguard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script type="module" src="/includes/user.js"></script>
+  </head>
+  <body>
+    <div class="sidebar">
+
+      
+      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="nav-item active">Manage Events</a>
+      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      
+      <a class="nav-item logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Manage Events</h1>
+        <div class="profile">
+        </div>
+      </div>
+
+<div class="content">
+  <div class="filter">
+    <h3>Filter Events</h3>
+
+    <input type="text" placeholder="Search Events..." id="search-input" />
+
+    <!-- Toggle Button for Filters (Mobile Only) -->
+    <button id="toggle-filters" class="btn filter-toggle-btn">
+      Show Filters
+    </button>
+
+    <!-- Hidden filters that are toggled on mobile -->
+    <div class="hidden-filters">
+      <select id="status-filter">
+        <option value="">Select Status</option>
+        <option value="Ongoing">Ongoing</option>
+        <option value="Upcoming">Upcoming</option>
+        <option value="Ended">Ended</option>
+      </select>
+
+      <h2>Select Location</h2>
+      <select id="building-select">
+        <option value="">Select Building</option>
+      </select>
+
+      <select id="floor-select">
+        <option value="">Select Floor</option>
+      </select>
+
+      <select id="room-select">
+        <option value="">Select Room</option>
+      </select>
+
+      <button id="clear-filters" class="btn clear-btn">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <div class="backdrop-filter">
+    <div id="event-list"></div>
+  </div>
+</div>
+
+
+<script>
+  const toggleBtn = document.getElementById("toggle-filters");
+  const hiddenFilters = document.querySelector(".hidden-filters");
+
+  toggleBtn.addEventListener("click", () => {
+    hiddenFilters.classList.toggle("show");
+    toggleBtn.textContent = hiddenFilters.classList.contains("show")
+      ? "Hide Filters"
+      : "Show Filters";
+  });
+</script>
+
+    </div>
+
+    <script type="module">
+      import {
+        initializeApp,
+        getApp,
+        getApps,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        set,
+        push,
+        get,
+        remove,
+        onValue,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import {
+        getStorage,
+        ref as sRef,
+        uploadBytes,
+        getDownloadURL,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+        authDomain: "pcu-maps-5d985.firebaseapp.com",
+        databaseURL:
+          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "pcu-maps-5d985",
+        storageBucket: "pcu-maps-5d985.appspot.com",
+        messagingSenderId: "922913954447",
+        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
+      };
+
+      const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      const storage = getStorage(app);
+
+      const FALLBACK_IMAGE_URL = "/assets/images/pcu-building.png";
+
+      const title = document.getElementById("event-title");
+      const description = document.getElementById("event-description");
+      const date = document.getElementById("selected-date");
+      const startTime = document.getElementById("start-time");
+      const endTime = document.getElementById("end-time");
+      const imageInput = document.getElementById("image-input");
+      const uploadBtn = document.getElementById("upload-btn");
+      const deleteBtn = document.getElementById("delete-btn");
+      const previewBox = document.getElementById("preview-box");
+      const createBtn = document.getElementById("create-event-btn");
+      const eventListDiv = document.getElementById("event-list");
+
+      function fetchEvents() {
+        const eventListRef = ref(db, "events");
+        get(eventListRef).then((snapshot) => {
+          eventListDiv.innerHTML = "";
+          const events = snapshot.val();
+          if (!events) {
+            eventListDiv.innerHTML = `
+            <p style="text-align: center; color: black; font-size: 70px; text-align:center;">
+              NO EVENTS AVAILABLE<br>
+            </p>`;
+            return;
+          }
+
+          const today = new Date().toISOString().split("T")[0];
+          const sortedEvents = Object.entries(events).sort(
+            (a, b) =>
+              new Date(a[1].selected_date) - new Date(b[1].selected_date)
+          );
+
+          sortedEvents.forEach(([eventId, event]) => {
+            const div = document.createElement("div");
+            div.className = "event-item";
+            div.setAttribute("data-location", event.location || "");
+
+            const [buildingName, floorLabel, roomLabel] = (event.location || "")
+              .split(" - ")
+              .map((s) => s.trim());
+
+            div.setAttribute("data-building-id", buildingName || "");
+            div.setAttribute("data-floor-id", floorLabel || "");
+            div.setAttribute("data-room-id", roomLabel || "");
+
+            const now = new Date();
+            const eventDate = new Date(event.selected_date);
+            const [startHour, startMin] = event.start_time
+              .split(":")
+              .map(Number);
+            const [endHour, endMin] = event.end_time.split(":").map(Number);
+
+            const startDateTime = new Date(event.selected_date);
+            startDateTime.setHours(startHour, startMin, 0, 0);
+
+            const endDateTime = new Date(event.selected_date);
+            endDateTime.setHours(endHour, endMin, 0, 0);
+
+            let statusHTML = "";
+            let status = "";
+
+            if (now > endDateTime) {
+              statusHTML = '<div class="event-ended">Event Ended</div>';
+              status = "ended";
+            } else if (now >= startDateTime && now <= endDateTime) {
+              statusHTML = '<div class="event-ongoing">Ongoing Event</div>';
+              status = "ongoing";
+            } else {
+              statusHTML = '<div class="event-upcoming">Upcoming Event</div>';
+              status = "upcoming";
+            }
+
+            div.setAttribute("data-status", status);
+
+            const truncatedDescription =
+              event.event_description.length > 50
+                ? event.event_description.substring(0, 50) + "..."
+                : event.event_description;
+
+            div.setAttribute(
+              "data-description",
+              event.event_description.replace(/"/g, "&quot;")
+            );
+
+                div.innerHTML = ` 
+          <article class="card">
+            ${statusHTML}
+            <figure class="card-image">
+              <img src="${event.image_url || FALLBACK_IMAGE_URL}" alt="${
+                  event.event_title
+                }">
+            </figure>
+            <div class="card-content">
+              <header class="card-header">
+                <h2>${event.event_title}</h2>
+                <p class="date-time">📅 ${event.selected_date} · 🕒 ${
+                  event.start_time
+                } - ${event.end_time}</p>
+                <p class="meta"><strong>📍</strong> ${event.location}</p>
+              </header>
+              <p class="description">${truncatedDescription}</p>
+              <footer class="card-footer">
+                <button class="btn edit" onclick="window.location.href='/pages/edit_events.html?eventId=${eventId}'">Edit</button>
+                <button class="btn delete" onclick="deleteEvent('${eventId}')">Delete</button>
+              </footer>
+            </div>
+          </article>
+        `;
+
+            eventListDiv.appendChild(div);
+          });
+        });
+      }
+
+      function deleteEvent(eventId) {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "This event will be permanently deleted.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Yes, delete it!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const eventRef = ref(db, "events/" + eventId);
+            remove(eventRef)
+              .then(() => {
+                Swal.fire("Deleted!", "The event has been deleted.", "success");
+                fetchEvents(); // Refresh the list
+              })
+              .catch((error) => {
+                Swal.fire("Error!", "Failed to delete the event.", "error");
+                console.error("Delete failed:", error);
+              });
+          }
+        });
+      }
+
+      function filterEvents() {
+        const searchInput = document
+          .getElementById("search-input")
+          .value.toLowerCase();
+        const statusFilter = document
+          .getElementById("status-filter")
+          .value.toLowerCase();
+
+        // Use dataset values for filtering (display name/label)
+        const buildingName =
+          buildingSelect.options[buildingSelect.selectedIndex]?.dataset.name ||
+          "";
+        const floorLabel =
+          floorSelect.options[floorSelect.selectedIndex]?.dataset.label || "";
+        const roomId = roomSelect.value;
+
+        const items = document.querySelectorAll(".event-item");
+
+        items.forEach((item) => {
+          const description = item.dataset.description?.toLowerCase() || "";
+          const matchesSearch = description.includes(searchInput);
+
+          const matchesBuilding =
+            buildingName === "" || item.dataset.buildingId === buildingName;
+          const matchesFloor =
+            floorLabel === "" || item.dataset.floorId === floorLabel;
+          const matchesRoom = roomId === "" || item.dataset.roomId === roomId;
+
+          const matchesStatus =
+            statusFilter === "" ||
+            item.dataset.status?.toLowerCase() === statusFilter;
+
+          if (
+            matchesSearch &&
+            matchesBuilding &&
+            matchesFloor &&
+            matchesRoom &&
+            matchesStatus
+          ) {
+            item.style.display = "block";
+          } else {
+            item.style.display = "none";
+          }
+        });
+      }
+
+      // Attach event listeners
+      document
+        .getElementById("search-input")
+        .addEventListener("input", filterEvents);
+      document
+        .getElementById("building-select")
+        .addEventListener("change", filterEvents);
+      document
+        .getElementById("floor-select")
+        .addEventListener("change", filterEvents);
+      document
+        .getElementById("room-select")
+        .addEventListener("change", filterEvents);
+      document
+        .getElementById("status-filter")
+        .addEventListener("change", filterEvents);
+
+      // Use 'db' instead of 'database'
+      const buildingSelect = document.getElementById("building-select");
+      const floorSelect = document.getElementById("floor-select");
+      const roomSelect = document.getElementById("room-select");
+
+      // Load buildings on page load
+      function loadBuildings() {
+        const buildingsRef = ref(db, "buildings");
+        onValue(buildingsRef, (snapshot) => {
+          buildingSelect.innerHTML = `<option value="">Select Building</option>`;
+          snapshot.forEach((buildingSnap) => {
+            const buildingId = buildingSnap.key;
+            const buildingName = buildingSnap.val().name;
+            const option = document.createElement("option");
+            option.value = buildingId; // Use key for querying
+            option.textContent = buildingName; // Show name
+            option.dataset.name = buildingName; // Store name for filtering
+            buildingSelect.appendChild(option);
+          });
+        });
+      }
+
+      // Load floors when a building is selected
+      buildingSelect.addEventListener("change", () => {
+        const selectedBuildingId = buildingSelect.value;
+        floorSelect.innerHTML = `<option value="">Select Floor</option>`;
+        roomSelect.innerHTML = `<option value="">Select Room</option>`;
+
+        if (!selectedBuildingId) return;
+
+        const floorsRef = ref(db, `buildings/${selectedBuildingId}/floors`);
+        onValue(floorsRef, (snapshot) => {
+          snapshot.forEach((floorSnap) => {
+            const floorId = floorSnap.key;
+            const floorData = floorSnap.val();
+            const label = `Floor ${floorData.floorNumber}`;
+            const option = document.createElement("option");
+            option.value = floorId; // Use key for querying
+            option.textContent = label; // Show label
+            option.dataset.label = label; // Store label for filtering
+            floorSelect.appendChild(option);
+          });
+        });
+      });
+
+      // Load rooms when a floor is selected
+      floorSelect.addEventListener("change", () => {
+        const selectedBuildingId = buildingSelect.value;
+        const selectedFloorId = floorSelect.value;
+        roomSelect.innerHTML = `<option value="">Select Room</option>`;
+
+        if (!selectedBuildingId || !selectedFloorId) return;
+
+        const roomsRef = ref(
+          db,
+          `buildings/${selectedBuildingId}/floors/${selectedFloorId}/rooms`
+        );
+        onValue(roomsRef, (snapshot) => {
+          snapshot.forEach((roomSnap) => {
+            const room = roomSnap.val();
+            const option = document.createElement("option");
+            option.value = room.roomName;
+            option.textContent = room.roomName;
+            roomSelect.appendChild(option);
+          });
+        });
+      });
+
+      document.getElementById("clear-filters").addEventListener("click", () => {
+        document.getElementById("search-input").value = "";
+        document.getElementById("status-filter").value = "";
+        buildingSelect.value = "";
+        floorSelect.innerHTML = `<option value="">Select Floor</option>`;
+        roomSelect.innerHTML = `<option value="">Select Room</option>`;
+
+        filterEvents(); // Re-apply filter logic with cleared inputs
+      });
+
+      window.deleteEvent = deleteEvent;
+      // Initialize on load
+      window.onload = () => {
+        fetchEvents(); // Your existing logic for event fetching
+        loadBuildings(); // Now load the buildings dropdown
+      };
+    </script>
+  </body>
+</html>

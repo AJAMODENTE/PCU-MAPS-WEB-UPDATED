@@ -1,0 +1,222 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.background {
+    background: url('../images/PCU_BG.png') no-repeat center center fixed;
+    background-size: cover; 
+    height: 100vh;
+
+    width: 100%;
+    position: fixed;
+    z-index: -1;
+}
+
+.login-container {
+    background-color: rgba(255, 255, 255, 0.5);
+    max-width: 500px;
+    padding: 50px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+.logo img {
+    width: 300px;
+    height: auto;
+}
+
+.logo h1 {
+    margin: 10px 0 5px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.logo p {
+    font-size: 14px;
+    color: #555;
+}
+
+form input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+form button {
+    width: 95%;
+    padding: 10px;
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+form button:hover {
+    background-color: #140aa1;
+}
+
+.emblems {
+    min-height: 80px;
+    white-space: nowrap;
+            margin-top: 25px;
+            width: 100%;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .emblems-container {
+            display: flex;
+            gap: 20px;
+            padding: 10px 0;
+            animation: scrollEmblems 64s linear infinite;
+            width: max-content;
+        }
+
+        @keyframes scrollEmblems {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .emblems img {
+            width: 60px;
+            height: 60px;
+            transition: transform 0.3s ease;
+        }
+
+        .emblems img:hover {
+            transform: scale(1.1);
+        }
+        
+        .emblems img:active {
+            transform: scale(0.9);
+        }
+
+
+@media (max-width: 768px) {
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-container {
+
+    width: 65%;
+    
+    text-align: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+.background {
+    background: url('../images/PCU_BG.png') no-repeat center center fixed;
+    background-size: cover; 
+    height: 100vh;
+
+    width: 100%;
+    position: fixed;
+    z-index: -1;
+}
+
+.logo img {
+    width: 300px;
+    height: auto;
+}
+
+.logo h1 {
+    margin: 10px 0 5px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.logo p {
+    font-size: 14px;
+    color: #555;
+}
+
+form input {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+form button {
+    width: 84%;
+    padding: 10px;
+    margin-top: 6px;
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+form button:hover {
+    background-color: #140aa1;
+}
+
+.emblems {
+    min-height: 80px;
+    white-space: nowrap;
+            margin-top: 25px;
+            width: 100%;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .emblems-container {
+            display: flex;
+            gap: 20px;
+            padding: 0px 0;
+            animation: scrollEmblems 64s linear infinite;
+            width: max-content;
+        }
+
+        @keyframes scrollEmblems {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .emblems img {
+            width: 60px;
+            height: 60px;
+            transition: transform 0.3s ease;
+        }
+
+        .emblems img:hover {
+            transform: scale(1.1);
+        }
+        
+        .emblems img:active {
+            transform: scale(0.9);
+        }
+}

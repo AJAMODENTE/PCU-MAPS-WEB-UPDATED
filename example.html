@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Firebase Test</title>
+</head>
+<body>
+
+  <input id="event-title" placeholder="Title"><br>
+  <input id="event-description" placeholder="Description"><br>
+  <input id="selected-date" placeholder="Date"><br>
+  <input id="start-time" type="time"><br>
+  <input id="end-time" type="time"><br>
+  <input id="departmentInput" placeholder="Department"><br>
+  <input id="courseInput" placeholder="Course"><br>
+  <button id="create-event-btn">Add Event</button>
+
+  <!-- Firebase Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+      authDomain: "pcu-maps-5d985.firebaseapp.com",
+      databaseURL: "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "pcu-maps-5d985",
+      storageBucket: "pcu-maps-5d985.appspot.com", // this had a typo in your original code
+      messagingSenderId: "922913954447",
+      appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app); // ✅ must pass app here
+
+    const title = document.getElementById("event-title");
+    const description = document.getElementById("event-description");
+    const date = document.getElementById("selected-date");
+    const startTime = document.getElementById("start-time");
+    const endTime = document.getElementById("end-time");
+    const department = document.getElementById("departmentInput");
+    const course = document.getElementById("courseInput");
+    const button = document.getElementById("create-event-btn");
+
+    button.addEventListener("click", () => {
+      if (!title.value || !date.value || !startTime.value || !endTime.value) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+
+      const newEventRef = push(ref(db, "events"));
+
+      set(newEventRef, {
+        event_title: title.value,
+        event_description: description.value,
+        selected_date: date.value,
+        start_time: startTime.value,
+        end_time: endTime.value,
+        department: department.value,
+        course: course.value
+      })
+      .then(() => {
+        alert("Event created successfully!");
+      })
+      .catch((error) => {
+        console.error("Firebase error:", error);
+        alert("Failed to create event. Check console.");
+      });
+    });
+  </script>
+</body>
+</html>

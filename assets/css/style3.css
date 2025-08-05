@@ -1,0 +1,581 @@
+/* Base Typography */
+body, button, input, select, textarea,
+.nav-item, .label-text, .event-item, .filter * {
+  font-size: var(--fs-14);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+}
+
+/* Reset and Globals */
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f0f4ff;
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: #ffffff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e0e0e0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar .logo {
+  width: 140px;
+  margin-bottom: 30px;
+}
+
+.sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.sidebar .nav-item:hover,
+.sidebar .nav-item.active {
+  background: #f0f4ff;
+  color: #1a73e8;
+}
+
+.sidebar .logout {
+  margin-top: auto;
+  color: #e53935;
+  cursor: pointer;
+}
+
+/* Main Layout */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 240px);
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Topbar */
+.topbar {
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 0 20px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+}
+
+/* Profile */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile img {
+  width: 36px;
+  border-radius: 50%;
+}
+
+/* Content Area Styling - UPDATED */
+.content {
+  display: flex;
+  flex: 1;
+  padding: 20px;
+  gap: 20px;
+  background-color: #ffffff;
+  overflow-y: auto;
+  height: calc(100vh - 64px);
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
+
+/* Event Form Layout - UPDATED */
+.event-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: auto;
+
+}
+
+.event-form .form-header {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.event-form .form-body {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  width: 100%;
+}
+
+.event-form .left-panel, .event-form .right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-form .left-panel {
+  min-width: 300px;
+  max-width: 450px;
+}
+
+.event-form .right-panel {
+  flex: 1.5;
+}
+
+.event-form .left-panel .image-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.event-form .image-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.event-form .upload-btn, .event-form .delete-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #001aff82;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+  flex: 1;
+}
+
+.event-form .upload-btn {
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+}
+
+.event-form .delete-btn {
+  background-color: #fafafa;
+  color: rgb(0, 0, 0);
+}
+
+.event-form input[type="file"] {
+  display: none;
+}
+
+.event-form input[type="text"], 
+.event-form input[type="date"], 
+.event-form input[type="time"], 
+.event-form textarea, 
+.event-form select {
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
+  font-size: 14px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.event-form input[type="text"]:focus, 
+.event-form input[type="date"]:focus, 
+.event-form input[type="time"]:focus, 
+.event-form select:focus {
+  border-color: #1a73e8;
+  outline: none;
+}
+
+.event-form textarea {
+  resize: vertical;
+  min-height: 200px;  /* Changed from 100px to 150px */
+}
+
+.event-form button {
+  padding: 12px 20px;
+  background-color: #1a73e8;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.event-form button:hover {
+  background-color: #165b8c;
+}
+
+/* Location Group */
+.location-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.location-option {
+  display: flex;
+  height: 100%;
+  min-height: max-content;
+}
+
+.location-option input[type="radio"] {
+  display: none;
+}
+
+.location-option label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  background: white;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  height: 100%;
+  text-align: center;
+}
+
+.location-option label .icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.location-option label .label-text {
+  font-weight: 600;
+  color: #333;
+}
+
+.location-option input[type="radio"]:checked + label {
+  border-color: #1a73e8;
+  background-color: #eaf2ff;
+}
+
+.location-option input[type="radio"]:checked + label .label-text,
+.location-option input[type="radio"]:checked + label .icon {
+  color: #1a73e8;
+}
+
+/* Image Placeholder Styles - UPDATED */
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  gap: 10px;
+}
+
+.image-placeholder input,
+.image-placeholder button {
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.image-input {
+  object-fit: cover;
+  display: block;
+}
+
+.image-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Fixed image box styles */
+.image-box {
+  background-color: #f5f5f5;
+  height: 250px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background-size: contain; /* This ensures the image keeps its aspect ratio */
+  background-position: center; /* This centers the image */
+  background-repeat: no-repeat; /* This prevents image tiling */
+  color: #888; /* Text color for "Image" placeholder text */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hide text when image is displayed */
+.image-box:not(:empty) {
+  color: transparent;
+}
+
+#preview-box {
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.upload-btn:hover, .delete-btn:hover {
+  background-color: #001aff;
+  color: white;
+}
+
+/* Responsive Layout */
+@media (max-width: 992px) {
+  .event-form .form-body {
+    flex-direction: column;
+  }
+  
+  .event-form .left-panel {
+    max-width: 100%;
+  }
+  
+  .image-box {
+    height: 200px;
+  }
+}
+
+
+
+
+
+/* Mobile Styles */
+/* Floating Sidebar Menu for Mobile */
+
+/* Add hamburger menu icon for mobile */
+.mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: #222; /* Dark theme */
+  color: white;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+  background-color: #333;
+  transform: scale(1.05);
+}
+
+.mobile-menu-toggle span {
+  position: relative;
+  display: block;
+  width: 26px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease-in-out;
+}
+
+.mobile-menu-toggle span::before,
+.mobile-menu-toggle span::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 26px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease-in-out;
+}
+
+.mobile-menu-toggle span::before {
+  top: -8px;
+}
+
+.mobile-menu-toggle span::after {
+  top: 8px;
+}
+
+/* Open State */
+.mobile-menu-toggle.open span {
+  background-color: transparent;
+}
+
+.mobile-menu-toggle.open span::before {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+.mobile-menu-toggle.open span::after {
+  transform: rotate(-45deg);
+  top: 0;
+}
+
+/* Show on mobile */
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+}
+
+
+/* Update the media query for mobile devices */
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+    height: auto;
+  }
+   .sidebar .logout {
+    margin-top: 0; /* Remove auto margin */
+  }
+  /* Hide the sidebar by default on mobile */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -240px; /* Start off-screen */
+    width: 240px;
+    height: 100vh;
+    background: #ffffff;
+    z-index: 999;
+    transition: left 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    border-right: 1px solid #e0e0e0;
+    border-bottom: none;
+    overflow-y: auto;
+  }
+  
+  /* Show the sidebar when it has the 'open' class */
+  .sidebar.open {
+    left: 0;
+  }
+  
+  /* Show the mobile menu toggle button */
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  /* Add overlay when menu is open */
+  .menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
+  
+  .menu-overlay.active {
+    display: block;
+  }
+  
+  /* Adjust main content */
+  .main {
+    max-width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding-left: 0;
+  }
+  
+  .topbar {
+    text-align: center;
+    padding: 15px;
+    height: auto;
+    position: relative;
+  }
+  .topbar img, span {
+    display: none;
+  }
+  
+  .content {
+    height: auto;
+    min-height: calc(100vh - 60px);
+    flex-direction: column;
+    padding: 15px;
+    padding-right: 28px;
+    overflow-y: visible;
+  }
+  
+  .event-form {
+    padding-bottom: 70px; /* Increased to account for floating button */
+  }
+  
+  .filter {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+  }
+}
+
+
+
+  /* Style for SweetAlert confirm button (Yes button) */
+  .swal2-confirm {
+    background-color: #007bff;  /* Blue background */
+    color: white;  /* White text */
+    border: none;  /* Remove border */
+    padding: 10px 20px;  /* Adjust padding */
+    font-size: 16px;  /* Adjust font size */
+    border-radius: 5px;  /* Rounded corners */
+    cursor: pointer;  /* Pointer cursor */
+    transition: background-color 0.3s ease;
+  }
+
+  /* Hover effect for SweetAlert confirm button */
+  .swal2-confirm:hover {
+    background-color: #0056b3;  /* Darker blue on hover */
+  }
+
+  /* Style for SweetAlert cancel button (Cancel button) */
+  .swal2-cancel {
+    background-color: #f44336;  /* Red background for Cancel */
+    color: white;  /* White text */
+    border: none;  /* Remove border */
+    padding: 10px 20px;  /* Adjust padding */
+    font-size: 16px;  /* Adjust font size */
+    border-radius: 5px;  /* Rounded corners */
+    cursor: pointer;  /* Pointer cursor */
+    transition: background-color 0.3s ease;
+  }
+
+  /* Hover effect for SweetAlert cancel button */
+  .swal2-cancel:hover {
+    background-color: #c0392b;  /* Darker red on hover */
+  }
+

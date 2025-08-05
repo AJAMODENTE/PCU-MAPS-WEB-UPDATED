@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Events</title>
+    <link rel="stylesheet" href="/assets/css/style5.css" />
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <script src="/includes/hamburger_menu.js"></script>
+    <script type="module" src="/includes/authguard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script type="module" src="/includes/user.js"></script>
+  </head>
+  <body>
+    <div class="sidebar">
+      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item active"
+        >Relocation</a
+      >
+      <a class="nav-item logout" alt="Logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Relocations</h1>
+          <div class="profile">
+          </div>
+      </div>
+
+      <div class="content">
+        <h2>Relocate Room</h2>
+        <div class="form-section">
+          <label for="sourceRoom">Select Room to Relocate:</label>
+          <select id="sourceRoom" class="select2">
+            <option value="" disabled selected hidden>Select a room</option>
+          </select>
+
+          <label for="targetRoom">Select Target Room:</label>
+          <select id="targetRoom" class="select2">
+            <option value="" disabled selected hidden>
+              Select a target room
+            </option>
+          </select>
+
+          <button id="relocateBtn">Relocate Room</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        update,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
+        authDomain: "pcu-maps-5d985.firebaseapp.com",
+        databaseURL:
+          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "pcu-maps-5d985",
+        storageBucket: "pcu-maps-5d985.appspot.com",
+        messagingSenderId: "922913954447",
+        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const sourceRoomSelect = document.getElementById("sourceRoom");
+      const targetRoomSelect = document.getElementById("targetRoom");
+      const relocateBtn = document.getElementById("relocateBtn");
+
+      $(document).ready(function () {
+        $(".select2").select2();
+      });
+
+      async function loadData() {
+        const snapshot = await get(ref(db, "buildings"));
+        const buildings = snapshot.val();
+
+        sourceRoomSelect.innerHTML = `<option value="" disabled selected>Select a room</option>`;
+        targetRoomSelect.innerHTML = `<option value="" disabled selected>Select a target room</option>`;
+
+        for (const [bId, building] of Object.entries(buildings)) {
+          if (building.floors) {
+            for (const [fId, floor] of Object.entries(building.floors)) {
+              if (floor.rooms) {
+                for (const [rId, room] of Object.entries(floor.rooms)) {
+                  const description = room.description
+                    ? ` 📝 ${room.description}`
+                    : "";
+                  const label = `${building.name} - Floor ${floor.floorNumber} - ${room.roomName}${description}`;
+                  const value = JSON.stringify({
+                    bId,
+                    fId,
+                    rId,
+                    from: "floor",
+                  });
+
+                  [sourceRoomSelect, targetRoomSelect].forEach((select) => {
+                    const option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = label;
+                    select.appendChild(option);
+                  });
+                }
+              }
+            }
+          }
+
+          if (building.rooms) {
+            for (const [rId, room] of Object.entries(building.rooms)) {
+              const description = room.description
+                ? ` 📝 ${room.description}`
+                : "";
+              const label = `${building.name} - ${room.roomName}${description}`;
+              const value = JSON.stringify({ bId, rId, from: "building" });
+
+              [sourceRoomSelect, targetRoomSelect].forEach((select) => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+              });
+            }
+          }
+        }
+
+        $(".select2").select2();
+      }
+
+      relocateBtn.addEventListener("click", async () => {
+        const sourceValue = sourceRoomSelect.value;
+        const targetValue = targetRoomSelect.value;
+
+        // Check if one or both rooms are not selected
+        if (!sourceValue || !targetValue) {
+          Swal.fire({
+            title: "Selection Error",
+            text: "Please select both a source and a target room.",
+            icon: "warning",
+            confirmButtonText: "Okay",
+          });
+          return;
+        }
+
+        const source = JSON.parse(sourceValue);
+        const target = JSON.parse(targetValue);
+
+        if (
+          source.bId === target.bId &&
+          source.rId === target.rId &&
+          source.fId === target.fId
+        ) {
+          Swal.fire({
+            title: "Invalid Operation",
+            text: "Source and target rooms are the same.",
+            icon: "warning",
+            confirmButtonText: "Okay",
+          });
+          return;
+        }
+
+        const sourcePath =
+          source.from === "floor"
+            ? `buildings/${source.bId}/floors/${source.fId}/rooms/${source.rId}`
+            : `buildings/${source.bId}/rooms/${source.rId}`;
+
+        const targetPath =
+          target.from === "floor"
+            ? `buildings/${target.bId}/floors/${target.fId}/rooms/${target.rId}`
+            : `buildings/${target.bId}/rooms/${target.rId}`;
+
+        const sourceSnap = await get(ref(db, sourcePath));
+        if (!sourceSnap.exists()) {
+          Swal.fire({
+            title: "Error",
+            text: "Source room not found.",
+            icon: "error",
+          });
+          return;
+        }
+
+        const targetSnap = await get(ref(db, targetPath));
+        if (!targetSnap.exists()) {
+          Swal.fire({
+            title: "Error",
+            text: "Target room does not exist.",
+            icon: "error",
+          });
+          return;
+        }
+
+        const sourceData = sourceSnap.val();
+        const description = sourceData.description;
+
+        if (!description) {
+          Swal.fire({
+            title: "Error",
+            text: "Source room has no description.",
+            icon: "error",
+          });
+          return;
+        }
+
+        // Update target room with source description
+        await update(ref(db, targetPath), { description: description });
+
+        // Prompt for optional filler description
+        const { value: filler } = await Swal.fire({
+          title: "Add Filler Description?",
+          input: "text",
+          inputLabel: "Enter a new description for the source room (optional)",
+          inputPlaceholder: "e.g., No longer in use, empty, etc.",
+          showCancelButton: true,
+          confirmButtonText: "Save",
+          cancelButtonText: "Skip",
+        });
+
+        // If filler is provided (not undefined or empty), update source with it
+        if (filler !== undefined) {
+          const newDescription = filler.trim() === "" ? null : filler.trim();
+          await update(ref(db, sourcePath), { description: newDescription });
+        }
+
+        Swal.fire({
+          title: "Success",
+          text: "Room description relocated successfully.",
+          icon: "success",
+          confirmButtonText: "Okay",
+        });
+
+        await loadData();
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>
