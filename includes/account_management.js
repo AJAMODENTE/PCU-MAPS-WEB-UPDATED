@@ -59,6 +59,8 @@ const ROLE_OPTIONS = [
 const accountsLoading = document.getElementById("accountsLoading");
 const accountsTableBody = document.getElementById("accountsTableBody");
 const accountsEmptyState = document.getElementById("accountsEmpty");
+const accountsSearchInput = document.getElementById("accountsSearch");
+const accountsSearchClear = document.getElementById("accountsSearchClear");
 const refreshButton = document.getElementById("refreshAccounts");
 const accountManagementRoot = document.querySelector(".account-management");
 const accountCreateButton = document.getElementById("openAccountCreateModal");
@@ -78,6 +80,19 @@ const DEFAULT_USER_PERMISSIONS = PERMISSIONS.reduce((acc, permission) => {
 }, {});
 DEFAULT_USER_PERMISSIONS[MANAGE_ACCOUNTS_KEY] = false;
 
+const accountsEmptyDefaultMessage =
+  accountsEmptyState?.textContent?.trim() ||
+  "No users found in the directory.";
+
+let cachedDirectoryUsers = [];
+let accountsSearchTerm = "";
+
+function syncAccountSearchControls() {
+  if (accountsSearchClear) {
+    accountsSearchClear.hidden = accountsSearchTerm.trim().length === 0;
+  }
+}
+
 if (accountManagementRoot) {
   accountManagementRoot.style.display = "none";
 }
@@ -89,6 +104,31 @@ refreshButton?.addEventListener("click", () => {
 if (accountCreateButton) {
   accountCreateButton.addEventListener("click", openCreateAccountDialog);
 }
+
+accountsSearchInput?.addEventListener("input", (event) => {
+  accountsSearchTerm = event.target.value || "";
+  syncAccountSearchControls();
+  renderAccountsTable();
+});
+
+accountsSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && accountsSearchTerm) {
+    accountsSearchTerm = "";
+    accountsSearchInput.value = "";
+    syncAccountSearchControls();
+    renderAccountsTable();
+  }
+});
+
+accountsSearchClear?.addEventListener("click", () => {
+  accountsSearchTerm = "";
+  if (accountsSearchInput) {
+    accountsSearchInput.value = "";
+    accountsSearchInput.focus();
+  }
+  syncAccountSearchControls();
+  renderAccountsTable();
+});
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -220,25 +260,21 @@ async function hydrateAccounts() {
       return aEmail.localeCompare(bEmail);
     });
 
-    let renderedCount = 0;
+    const visibleUsers = orderedUsers
+      .filter(([uid, data]) => {
+        if (uid === currentUserId) {
+          return false;
+        }
+        return normalizeRole(data?.role) !== "admin";
+      })
+      .map(([uid, userData]) => ({
+        uid,
+        data: userData || {},
+      }));
 
-    const visibleUsers = orderedUsers.filter(([uid, data]) => {
-      if (uid === currentUserId) {
-        return false;
-      }
-      return normalizeRole(data?.role) !== "admin";
-    });
-
-    visibleUsers.forEach(([uid, userData]) => {
-      const row = renderUserRow(uid, userData || {});
-      if (row) {
-        renderedCount += 1;
-      }
-    });
-
-    if (renderedCount === 0) {
-      accountsEmptyState.hidden = false;
-    }
+    cachedDirectoryUsers = visibleUsers;
+    renderAccountsTable();
+    syncAccountSearchControls();
   } catch (error) {
     console.error("Failed to load accounts", error);
     await Swal.fire({
@@ -411,6 +447,45 @@ function renderUserRow(uid, userData) {
   row.classList.toggle("is-disabled", isDisabled);
 
   return row;
+}
+
+function renderAccountsTable() {
+  if (!accountsTableBody) {
+    return;
+  }
+
+  accountsTableBody.innerHTML = "";
+  accountsEmptyState.hidden = true;
+
+  const normalizedTerm = accountsSearchTerm.trim().toLowerCase();
+
+  const matchingUsers = cachedDirectoryUsers.filter(({ uid, data }) => {
+    if (!normalizedTerm) {
+      return true;
+    }
+
+    const email = (data?.email || "").toLowerCase();
+    const normalizedUid = (uid || "").toLowerCase();
+    return email.includes(normalizedTerm) || normalizedUid.includes(normalizedTerm);
+  });
+
+  let renderedCount = 0;
+
+  matchingUsers.forEach(({ uid, data }) => {
+    const row = renderUserRow(uid, data);
+    if (row) {
+      renderedCount += 1;
+    }
+  });
+
+  if (renderedCount === 0) {
+    accountsEmptyState.hidden = false;
+    accountsEmptyState.textContent = normalizedTerm
+      ? "No accounts match that email or UID."
+      : accountsEmptyDefaultMessage;
+  } else {
+    accountsEmptyState.textContent = accountsEmptyDefaultMessage;
+  }
 }
 
 function renderAuthOnlyRow(uid, email) {

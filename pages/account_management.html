@@ -78,9 +78,29 @@
         <section class="accounts-table-card">
           <header class="accounts-table-header">
             <h3>Active Accounts</h3>
-            <button id="refreshAccounts" class="btn accounts-refresh">
-              Refresh
-            </button>
+            <div class="accounts-table-controls">
+              <div class="accounts-search">
+                <input
+                  type="search"
+                  id="accountsSearch"
+                  class="accounts-search-input"
+                  placeholder="Search by email or UID"
+                  autocomplete="off"
+                  aria-label="Search accounts by email or UID"
+                />
+                <button
+                  type="button"
+                  id="accountsSearchClear"
+                  class="btn accounts-search-clear"
+                  hidden
+                >
+                  Clear
+                </button>
+              </div>
+              <button id="refreshAccounts" class="btn accounts-refresh">
+                Refresh
+              </button>
+            </div>
           </header>
           <div id="accountsLoading" class="accounts-loading" role="status">
             <span class="loader"></span>
