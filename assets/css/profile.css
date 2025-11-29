@@ -1,95 +1,217 @@
 /* General container styling */
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f5f6fa;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+/* Profile Page overrides (integrates with global style1.css) */
+/* Stat cards inherit from admin-trail.css, no overrides needed */
+
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* Card styling */
-.profile-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
 }
 
-.profile-card {
-  position: relative;
-  background-color: #ffffff;
-  padding: 30px 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-  box-sizing: border-box;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f5f9;
 }
 
 .profile-card h2 {
-  text-align: center;
-  margin-bottom: 25px;
-  color: #2f3640;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 10px;
+  text-align: left;
 }
 
-/* Close (Home) button styled as X */
-#homeBtn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  font-weight: bold;
-  color: #888;
-  cursor: pointer;
-  transition: color 0.2s ease;
+/* Labels and inputs inherit from admin-trail.css filter-group styles */
+#accountSettingsForm input[type="email"][readonly] {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 
-#homeBtn:hover {
-  color: #e84118;
+#saveChangesBtn.apply-btn {
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
-/* Form styles */
-form label {
+#homeBtn.reset-btn {
+  font-weight: 500;
+}
+
+/* Responsive tweak */
+@media (max-width: 640px) {
+  .profile-card {
+    padding: 22px 20px;
+  }
+  .profile-card h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Hide stat cards on mobile */
+  .trail-stats {
+    display: none;
+  }
+}
+
+/* Modern additions - match Admin Trail style */
+.input-with-toggle {
+  position: relative;
   display: block;
-  margin-bottom: 6px;
-  font-weight: bold;
-  color: #2f3640;
-}
-
-form input[type="email"],
-form input[type="password"] {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 20px;
-  border: 1px solid #dcdde1;
-  border-radius: 5px;
-  font-size: 14px;
-  box-sizing: border-box;
 }
-
-form input[readonly] {
-  background-color: #f1f2f6;
-  color: #636e72;
+.input-with-toggle input[type="password"] {
+  padding-right: 64px !important;
 }
-
-/* Save Changes button (blue) */
-#saveChangesBtn {
-  width: 100%;
-  padding: 12px;
-  background-color: #0984e3;
-  color: white;
+.toggle-visibility {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: transparent;
   border: none;
-  border-radius: 5px;
-  font-size: 15px;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+  line-height: 1;
+}
+.toggle-visibility:hover {
+  background: #f1f5f9;
+  color: #3b82f6;
 }
 
-#saveChangesBtn:hover {
-  background-color: #74b9ff;
+/* Email with check icon */
+.input-with-check {
+  position: relative;
+  display: block;
+  width: 100%;
+  cursor: help;
+}
+.input-with-check input {
+  padding-right: 40px !important;
+}
+.check-icon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #10b981;
+  font-size: 1.25rem;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.pw-strength {
+  margin-top: 8px;
+}
+.pw-bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.pw-bars span {
+  display: block;
+  height: 6px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  transition: background-color 0.25s ease;
+}
+.pw-label {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Active bar colors by score */
+.pw-strength.s1 .pw-bars span.active {
+  background: #ef4444;
+}
+.pw-strength.s2 .pw-bars span.active {
+  background: #f59e0b;
+}
+.pw-strength.s3 .pw-bars span.active {
+  background: #f59e0b;
+}
+.pw-strength.s4 .pw-bars span.active {
+  background: #10b981;
+}
+
+/* Password validation warning */
+.pw-validation-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #991b1b;
+  animation: slideDown 0.3s ease;
+}
+.pw-validation-warning .warning-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.pw-validation-warning .warning-text {
+  flex: 1;
+  line-height: 1.5;
+}
+.pw-validation-warning .warning-text strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Password match indicator */
+.pw-match-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+.pw-match-indicator.match {
+  color: #10b981;
+}
+.pw-match-indicator.match .match-icon {
+  color: #10b981;
+  font-weight: bold;
+}
+.pw-match-indicator.no-match {
+  color: #ef4444;
+}
+.pw-match-indicator.no-match .match-icon {
+  color: #ef4444;
+  font-weight: bold;
 }

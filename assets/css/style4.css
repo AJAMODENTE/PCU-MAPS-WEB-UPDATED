@@ -1,3 +1,28 @@
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -11,7 +36,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-} 
+}
 
 .container {
   width: 90%;
@@ -92,7 +117,9 @@ body {
   background: #007bff;
   width: 100%;
   max-width: 100px;
-  transition: background 0.3s, color 0.3s;
+  transition:
+    background 0.3s,
+    color 0.3s;
 }
 
 .logout img {
@@ -113,7 +140,6 @@ body {
   padding: 20px;
   color: rgb(255, 255, 255);
   border-radius: 0 25px 25px 0;
-  
 }
 
 .event-form {
@@ -175,7 +201,9 @@ body {
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s, color 0.3s;
+  transition:
+    background 0.3s,
+    color 0.3s;
 }
 
 .upload-btn:hover {
@@ -190,7 +218,9 @@ body {
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s, color 0.3s;
+  transition:
+    background 0.3s,
+    color 0.3s;
 }
 
 .delete-btn:hover {
@@ -250,7 +280,6 @@ textarea {
   color: white;
 }
 
-
 .calendar {
   background-color: #fff;
   border-radius: 10px;
@@ -294,13 +323,11 @@ button:hover {
   border-radius: 20%;
 }
 
-
-
 .calendar-days div {
   text-align: center;
   padding: 8px;
   cursor: pointer;
-  font-size: 12px; 
+  font-size: 12px;
 }
 
 .calendar-days div:hover {
@@ -312,4 +339,3 @@ button:hover {
 .calendar-days .day-name {
   font-weight: bold;
 }
-

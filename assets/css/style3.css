@@ -1,15 +1,62 @@
+/* Prevent layout shift when SweetAlert appears */
+html {
+  overflow-y: scroll;
+}
+
+body.swal2-shown:not(.swal2-no-backdrop):not(.swal2-toast-shown) {
+  overflow: hidden !important;
+  padding-right: 0 !important;
+}
+
+.sidebar.swal2-padding,
+.main.swal2-padding {
+  padding-right: var(--scrollbar-width, 0) !important;
+}
+
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
 /* Base Typography */
-body, button, input, select, textarea,
-.nav-item, .label-text, .event-item, .filter * {
+body,
+button,
+input,
+select,
+textarea,
+.nav-item,
+.label-text,
+.event-item,
+.filter * {
   font-size: var(--fs-14);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 1.4;
 }
 
 /* Reset and Globals */
 * {
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 body {
@@ -52,10 +99,66 @@ body {
   transition: background 0.2s;
 }
 
-.sidebar .nav-item:hover,
+.sidebar .nav-item.admin-only {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar .nav-item.admin-only.is-visible-admin,
+body.admin-user .sidebar .nav-item.admin-only,
+html.admin-user .sidebar .nav-item.admin-only {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar .nav-item:hover {
+  background: #f0f4ff;
+  color: #1a73e8;
+}
+
 .sidebar .nav-item.active {
   background: #f0f4ff;
   color: #1a73e8;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.sidebar .nav-item.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(26, 115, 232, 0.18), rgba(10, 70, 180, 0.05));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.sidebar .nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #1a73e8, #0b4fb3);
+  transform: translateX(-100%);
+  transition: transform 0.35s ease;
+}
+
+.sidebar .nav-item.active .icon {
+  transform: translateX(0);
+  transition: transform 0.35s ease;
+}
+
+.sidebar .nav-item.active:hover::after,
+.sidebar .nav-item.active:hover::before,
+.sidebar .nav-item.active:focus-visible::after,
+.sidebar .nav-item.active:focus-visible::before {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .sidebar .logout {
@@ -115,14 +218,13 @@ body {
   max-width: 100%;
 }
 
-
 /* Event Form Layout - UPDATED */
 .event-form {
   display: flex;
   flex-direction: column;
   width: 100%;
   margin-bottom: auto;
-
+  position: relative;
 }
 
 .event-form .form-header {
@@ -138,7 +240,8 @@ body {
   width: 100%;
 }
 
-.event-form .left-panel, .event-form .right-panel {
+.event-form .left-panel,
+.event-form .right-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -168,13 +271,16 @@ body {
   width: 100%;
 }
 
-.event-form .upload-btn, .event-form .delete-btn {
+.event-form .upload-btn,
+.event-form .delete-btn {
   padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid #001aff82;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   flex: 1;
 }
 
@@ -192,10 +298,10 @@ body {
   display: none;
 }
 
-.event-form input[type="text"], 
-.event-form input[type="date"], 
-.event-form input[type="time"], 
-.event-form textarea, 
+.event-form input[type="text"],
+.event-form input[type="date"],
+.event-form input[type="time"],
+.event-form textarea,
 .event-form select {
   padding: 12px 15px;
   border-radius: 8px;
@@ -206,9 +312,9 @@ body {
   max-width: 100%;
 }
 
-.event-form input[type="text"]:focus, 
-.event-form input[type="date"]:focus, 
-.event-form input[type="time"]:focus, 
+.event-form input[type="text"]:focus,
+.event-form input[type="date"]:focus,
+.event-form input[type="time"]:focus,
 .event-form select:focus {
   border-color: #1a73e8;
   outline: none;
@@ -216,7 +322,7 @@ body {
 
 .event-form textarea {
   resize: vertical;
-  min-height: 200px;  /* Changed from 100px to 150px */
+  min-height: 200px; /* Changed from 100px to 150px */
 }
 
 .event-form button {
@@ -231,6 +337,59 @@ body {
 
 .event-form button:hover {
   background-color: #165b8c;
+}
+
+.field-error {
+  display: none;
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin: 4px 0 12px;
+}
+
+.building-error {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.events-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+}
+
+.events-loading-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  color: #1e293b;
+}
+
+.events-loading-message p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.events-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid rgba(59, 130, 246, 0.25);
+  border-top-color: #3b82f6;
+  animation: events-loading-spin 0.8s linear infinite;
+}
+
+@keyframes events-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Location Group */
@@ -324,18 +483,14 @@ body {
 
 /* Fixed image box styles */
 .image-box {
-  background-color: #f5f5f5;
+  background-color: #ffffff;
   height: 250px;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #3e7ebe;
   background-size: contain; /* This ensures the image keeps its aspect ratio */
   background-position: center; /* This centers the image */
   background-repeat: no-repeat; /* This prevents image tiling */
-  color: #888; /* Text color for "Image" placeholder text */
   position: relative;
   overflow: hidden;
 }
@@ -351,7 +506,8 @@ body {
   background-repeat: no-repeat;
 }
 
-.upload-btn:hover, .delete-btn:hover {
+.upload-btn:hover,
+.delete-btn:hover {
   background-color: #001aff;
   color: white;
 }
@@ -361,19 +517,15 @@ body {
   .event-form .form-body {
     flex-direction: column;
   }
-  
+
   .event-form .left-panel {
     max-width: 100%;
   }
-  
+
   .image-box {
     height: 200px;
   }
 }
-
-
-
-
 
 /* Mobile Styles */
 /* Floating Sidebar Menu for Mobile */
@@ -395,7 +547,9 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .mobile-menu-toggle:hover {
@@ -414,7 +568,7 @@ body {
 
 .mobile-menu-toggle span::before,
 .mobile-menu-toggle span::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   width: 26px;
@@ -447,20 +601,19 @@ body {
 }
 
 /* Show on mobile */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .mobile-menu-toggle {
     display: flex;
   }
 }
 
-
 /* Update the media query for mobile devices */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   body {
     flex-direction: column;
     height: auto;
   }
-   .sidebar .logout {
+  .sidebar .logout {
     margin-top: 0; /* Remove auto margin */
   }
   /* Hide the sidebar by default on mobile */
@@ -478,17 +631,17 @@ body {
     border-bottom: none;
     overflow-y: auto;
   }
-  
+
   /* Show the sidebar when it has the 'open' class */
   .sidebar.open {
     left: 0;
   }
-  
+
   /* Show the mobile menu toggle button */
   .mobile-menu-toggle {
     display: flex;
   }
-  
+
   /* Add overlay when menu is open */
   .menu-overlay {
     display: none;
@@ -500,11 +653,11 @@ body {
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 998;
   }
-  
+
   .menu-overlay.active {
     display: block;
   }
-  
+
   /* Adjust main content */
   .main {
     max-width: 100%;
@@ -512,17 +665,18 @@ body {
     min-height: 100vh;
     padding-left: 0;
   }
-  
+
   .topbar {
     text-align: center;
     padding: 15px;
     height: auto;
     position: relative;
   }
-  .topbar img, span {
+  .topbar img,
+  span {
     display: none;
   }
-  
+
   .content {
     height: auto;
     min-height: calc(100vh - 60px);
@@ -531,11 +685,11 @@ body {
     padding-right: 28px;
     overflow-y: visible;
   }
-  
+
   .event-form {
     padding-bottom: 70px; /* Increased to account for floating button */
   }
-  
+
   .filter {
     width: 100%;
     border-right: none;
@@ -543,39 +697,109 @@ body {
   }
 }
 
+/* Style for SweetAlert confirm button (Yes button) */
+.swal2-confirm {
+  background-color: #007bff; /* Blue background */
+  color: white; /* White text */
+  border: none; /* Remove border */
+  padding: 10px 20px; /* Adjust padding */
+  font-size: 16px; /* Adjust font size */
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor */
+  transition: background-color 0.3s ease;
+}
 
+/* Hover effect for SweetAlert confirm button */
+.swal2-confirm:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
 
-  /* Style for SweetAlert confirm button (Yes button) */
-  .swal2-confirm {
-    background-color: #007bff;  /* Blue background */
-    color: white;  /* White text */
-    border: none;  /* Remove border */
-    padding: 10px 20px;  /* Adjust padding */
-    font-size: 16px;  /* Adjust font size */
-    border-radius: 5px;  /* Rounded corners */
-    cursor: pointer;  /* Pointer cursor */
-    transition: background-color 0.3s ease;
-  }
+/* Style for SweetAlert cancel button (Cancel button) */
+.swal2-cancel {
+  background-color: #f44336; /* Red background for Cancel */
+  color: white; /* White text */
+  border: none; /* Remove border */
+  padding: 10px 20px; /* Adjust padding */
+  font-size: 16px; /* Adjust font size */
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor */
+  transition: background-color 0.3s ease;
+}
 
-  /* Hover effect for SweetAlert confirm button */
-  .swal2-confirm:hover {
-    background-color: #0056b3;  /* Darker blue on hover */
-  }
+/* Hover effect for SweetAlert cancel button */
+.swal2-cancel:hover {
+  background-color: #c0392b; /* Darker red on hover */
+}
 
-  /* Style for SweetAlert cancel button (Cancel button) */
-  .swal2-cancel {
-    background-color: #f44336;  /* Red background for Cancel */
-    color: white;  /* White text */
-    border: none;  /* Remove border */
-    padding: 10px 20px;  /* Adjust padding */
-    font-size: 16px;  /* Adjust font size */
-    border-radius: 5px;  /* Rounded corners */
-    cursor: pointer;  /* Pointer cursor */
-    transition: background-color 0.3s ease;
-  }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* space between icon and text */
+  font-weight: 500;
+  color: #333;
+  text-decoration: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  margin-bottom: 20px;
+}
 
-  /* Hover effect for SweetAlert cancel button */
-  .swal2-cancel:hover {
-    background-color: #c0392b;  /* Darker red on hover */
-  }
+.nav-item .icon {
+  font-size: 18px; /* size of plus */
+  font-weight: bold;
+  line-height: 1;
+  color: #1a73e8; /* blue color for icon */
+  transition: color 0.2s;
+}
 
+.nav-item:hover,
+.nav-item.active {
+  background: #f0f4ff;
+  color: #1a73e8;
+}
+
+.nav-item:hover .icon,
+.nav-item.active .icon {
+  color: #1a73e8;
+}
+.create-event-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1a73e8;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 24px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: var(--fs-14);
+  box-shadow: 0 3px 6px rgba(26, 115, 232, 0.3);
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.create-event-btn:hover {
+  background-color: #155ac2;
+}
+
+.plus-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 50%;
+  background-color: white;
+  color: #1a73e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  user-select: none;
+}
+.error-highlight {
+  border: 2px solid #ff6b6b !important;
+  background-color: #fff6f6 !important;
+}

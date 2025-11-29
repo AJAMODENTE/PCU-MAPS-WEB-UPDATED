@@ -1,19 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../assets/css/style6.css"/>
-    <script type="module" src="../includes/register.js" defer></script>
-    <title>register account</title>
-</head>
-<body>
-    <form>
-        <h2>Register</h2>
-        <input id="email" type="email" name="email" placeholder="Email">
-        <input id="password" type="password" name="password" placeholder="Password" >
-        <button id="submit" type="submit">Register</button>
-        <p>Already have an account? <a href="../index.html">Login here</a></p>
-    </form>   
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Create Account • PCU Maps</title>
+    <meta
+      name="description"
+      content="Create a PCU Maps account to access campus maps and events."
+    />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <script type="module" src="/includes/register.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
+  </head>
+  <body>
+    <div class="background"></div>
+
+    <div class="login-container">
+      <div class="logo">
+        <img
+          src="/assets/images/Pcu_maps_logo.png"
+          alt="PCU Maps Logo"
+          draggable="false"
+        />
+      </div>
+
+      <h2>Create your account</h2>
+      <p>Use your official @pcu.edu.ph email address to register.</p>
+
+      <form method="POST" id="registerForm" novalidate>
+        <div class="form-group">
+          <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Email"
+            required
+            autocomplete="email"
+            maxlength="254"
+            aria-label="Email address"
+            aria-required="true"
+          />
+          <span class="error-message" id="emailError" role="alert"></span>
+        </div>
+
+        <div class="form-group password-group">
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            required
+            autocomplete="new-password"
+            maxlength="128"
+            aria-label="Password"
+            aria-required="true"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            id="togglePassword"
+            aria-label="Show password"
+            data-visibility="hidden"
+          >
+            <svg
+              class="toggle-password-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                class="eye-outline"
+                d="M1 12c2.7-5 7.1-8 11-8s8.3 3 11 8c-2.7 5-7.1 8-11 8S3.7 17 1 12z"
+              />
+              <circle class="eye-pupil" cx="12" cy="12" r="3.5" />
+              <line class="eye-strike" x1="3.5" y1="3.5" x2="20.5" y2="20.5" />
+            </svg>
+            <span class="visually-hidden show-text">Show password</span>
+          </button>
+          <span class="error-message" id="passwordError" role="alert"></span>
+        </div>
+
+        <button type="submit" id="submit">
+          <span class="button-text">Register</span>
+          <span class="button-loader" style="display: none"></span>
+        </button>
+      </form>
+
+      <div class="form-footer">
+        <span>Already have an account? </span>
+        <a href="/index.html">Return to login</a>
+      </div>
+    </div>
+  </body>
 </html>

@@ -1,402 +1,1838 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manage Buildings</title>
     <link rel="stylesheet" href="/assets/css/style2.css" />
-    <script type="module" src="/includes/logout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/includes/hamburger_menu.js"></script>
+    <script src="/includes/swal-fix.js" defer></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"
+      type="module"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js"
+      type="module"
+    ></script>
+
+    <script type="module" src="/includes/logout.js" defer></script>
     <script type="module" src="/includes/authguard.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script type="module" src="/includes/user.js"></script>
+    <script src="/includes/hamburger_menu.js" defer></script>
   </head>
+
   <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
     <div class="sidebar">
-      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+
       <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
-      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
-      <a href="/pages/profile.html" class="nav-item">Account</a>
       <a href="/relocation/location.html" class="nav-item active">Buildings</a>
       <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
       <a class="nav-item logout" id="logout">Logout</a>
     </div>
 
     <div class="main">
       <div class="topbar">
-        <h1>Buildings</h1>
-          <div class="profile">
-          </div>
+        <h1>Manage Buildings</h1>
       </div>
 
       <div class="content">
-        <h2>Add New Building</h2>
-        <div class="form-section">
-          <input type="text" id="buildingName" placeholder="Building Name" />
-          <button id="addBuildingBtn">Add Building</button>
-        </div>
+        <section class="buildings-hero">
+          <div class="hero-text">
+            <span class="buildings-chip">Building Directory</span>
+            <h2>Campus Building Management</h2>
+            <p>
+              Keep every campus building, floor, and room organized in one
+              place.
+            </p>
+          </div>
+          <div class="hero-metrics" role="list">
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Buildings</span>
+              <span class="metric-value" id="totalBuildingsCount">0</span>
+            </div>
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Floors</span>
+              <span class="metric-value" id="totalFloorsCount">0</span>
+            </div>
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Rooms</span>
+              <span class="metric-value" id="totalRoomsCount">0</span>
+            </div>
+          </div>
+        </section>
 
-        <div class="buildings-list" id="buildingsList"></div>
+        <section class="form-card">
+          <div class="form-card-header">
+            <h2>Quick Add</h2>
+            <p>Name your building exactly as it appears on campus maps.</p>
+          </div>
+          <div class="form-section">
+            <input
+              type="text"
+              id="buildingName"
+              placeholder="Create Building (Ex. New Academic Building)"
+            />
+            <button id="addBuildingBtn">Add Building</button>
+          </div>
+        </section>
+
+        <section class="buildings-board">
+          <div class="board-header">
+            <div class="board-copy">
+              <h2>Buildings Overview</h2>
+              <p>
+                Browse existing structures, manage floors, and keep rooms up to
+                date.
+              </p>
+            </div>
+            <div class="board-actions">
+              <div class="search-wrapper">
+                <input
+                  type="search"
+                  id="buildingSearch"
+                  placeholder="Search building name..."
+                  aria-label="Search buildings"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="buildings-list" id="buildingsList"></div>
+        </section>
       </div>
     </div>
 
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
+      import AdminTrail from "/includes/adminTrail.js";
+      import {
+        initializeApp,
+        getApp,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
       import {
         getDatabase,
         ref,
-        push,
         set,
+        get,
         update,
         remove,
         onValue,
-      } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-        authDomain: "pcu-maps-5d985.firebaseapp.com",
-        databaseURL:
-          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pcu-maps-5d985",
-        storageBucket: "pcu-maps-5d985.appspot.com",
-        messagingSenderId: "922913954447",
-        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
-      };
+      // Initialize Firebase safely (avoids duplicate initialization)
+      let app;
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+app = getApp();
+      }
 
-      const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
-
+      const auth = getAuth(app);
+      const adminTrail = new AdminTrail(db, auth);
+const ILLEGAL_KEY_RE = /[.#$\[\]/]/;
       const buildingsList = document.getElementById("buildingsList");
+      const buildingSearchInput = document.getElementById("buildingSearch");
+      const totalBuildingsCountEl = document.getElementById(
+        "totalBuildingsCount",
+      );
+      const totalFloorsCountEl = document.getElementById("totalFloorsCount");
+      const totalRoomsCountEl = document.getElementById("totalRoomsCount");
+      let loadingIndicator = null;
+      let buildingsData = {};
 
-      // Add Building
-      document
-        .getElementById("addBuildingBtn")
-        .addEventListener("click", () => {
-          const name = document.getElementById("buildingName").value.trim();
-          if (name) {
-            const newBuildingRef = push(ref(db, "buildings"));
-            set(newBuildingRef, {
-              name,
-              createdAt: new Date().toISOString(),
-            }).then(() => {
-              Swal.fire("Success!", "Building added!", "success");
-              document.getElementById("buildingName").value = "";
-            });
-          } else {
-            Swal.fire("Oops!", "Please enter a building name.", "error");
-          }
-        });
+      // Operation locks to prevent concurrent modifications
+      let isAddingBuilding = false;
+      let isEditingBuilding = false;
+      let isDeletingBuilding = false;
+      let operationInProgress = {};
 
-      // Realtime display
-      onValue(ref(db, "buildings"), (snapshot) => {
-        buildingsList.innerHTML = "";
-        const data = snapshot.val();
-        if (data) {
-          Object.entries(data).forEach(([buildingId, building]) => {
-            const buildingDiv = document.createElement("div");
-            buildingDiv.classList.add("building");
+      // 🛡️ Input Sanitization
+      function sanitizeInput(input) {
+        if (typeof input !== "string") return "";
+        return input
+          .trim()
+          .replace(/[<>\"'&]/g, "") // Remove potentially dangerous characters
+          .substring(0, 100); // Limit length
+      }
 
-            let floorsHTML = "";
-            if (building.floors) {
-              Object.entries(building.floors).forEach(([floorId, floor]) => {
-                const roomsHTML = floor.rooms
-                  ? Object.entries(floor.rooms)
-                      .map(
-                        ([roomId, room]) => `
-                    <div class="room">
-                      Room: ${room.roomName} (${room.description})
-                      <button onclick="editRoom('${buildingId}', '${floorId}', '${roomId}', '${room.roomName}', '${room.description}')">Edit</button>
-                      <button onclick="deleteRoom('${buildingId}', '${floorId}', '${roomId}')">Delete</button>
-                    </div>
-                  `
-                      )
-                      .join("")
-                  : "";
+      // 🛡️ Validate Name (Building, Floor, Room)
+      function validateName(name, type = "name") {
+        const sanitized = sanitizeInput(name);
+        if (!sanitized) {
+          throw new Error(`${type} cannot be empty`);
+        }
+        if (sanitized.length < 2) {
+          throw new Error(`${type} must be at least 2 characters`);
+        }
+        if (ILLEGAL_KEY_RE.test(sanitized)) {
+          throw new Error(`${type} cannot contain . # $ [ ] /`);
+        }
+        if (!/^[a-zA-Z0-9\s\-_]+$/.test(sanitized)) {
+          throw new Error(
+            `${type} can only contain letters, numbers, spaces, hyphens, and underscores`,
+          );
+        }
+        return sanitized;
+      }
 
-                floorsHTML += `
-                <button class="accordion">Floor ${floor.floorNumber}</button>
-                <div class="panel">
-                  <button onclick="editFloor('${buildingId}', '${floorId}', '${floor.floorNumber}')">Edit Floor</button>
-                  <button onclick="deleteFloor('${buildingId}', '${floorId}')">Delete Floor</button>
-                  <button onclick="addRoom('${buildingId}', '${floorId}')">Add Room</button>
-                  <div class="rooms">${roomsHTML}</div>
-                </div>
-              `;
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      // 🔍 Check if building exists
+      async function buildingExists(buildingName) {
+        const snapshot = await get(ref(db, `Buildings/${buildingName}`));
+        return snapshot.exists();
+      }
+
+      // 🔍 Check if floor exists in building
+      async function floorExists(buildingName, floorNumber) {
+        const snapshot = await get(
+          ref(db, `Buildings/${buildingName}/Floors/${floorNumber}`),
+        );
+        return snapshot.exists();
+      }
+
+      // 🔍 Check if room exists in location
+      async function roomExistsInLocation(buildingName, floorNumber, roomName) {
+        const hasFloor =
+          floorNumber !== null &&
+          floorNumber !== undefined &&
+          floorNumber !== 0;
+        const path = hasFloor
+          ? `Buildings/${buildingName}/Floors/${floorNumber}/Rooms/${roomName}`
+          : `Buildings/${buildingName}/Rooms/${roomName}`;
+
+        const snapshot = await get(ref(db, path));
+        return snapshot.exists();
+      }
+
+      // 🔒 Create operation lock key
+      function createLockKey(type, ...identifiers) {
+        return `${type}:${identifiers.join(":")}`;
+      }
+
+      // 🔒 Check if operation is locked
+      function isOperationLocked(lockKey) {
+        return !!operationInProgress[lockKey];
+      }
+
+      // 🔒 Lock operation
+      function lockOperation(lockKey) {
+        operationInProgress[lockKey] = true;
+      }
+
+      // 🔒 Unlock operation
+      function unlockOperation(lockKey) {
+        delete operationInProgress[lockKey];
+      }
+
+      function formatPlural(value, unit) {
+        const count = Number.isFinite(value) ? value : 0;
+        return `${count} ${unit}${count === 1 ? "" : "s"}`;
+      }
+
+      function calculateBuildingCounts(buildingData) {
+        const details =
+          buildingData && typeof buildingData === "object" ? buildingData : {};
+        let floorsCount = 0;
+        let roomsCount = 0;
+
+        if (details.Floors) {
+          Object.entries(details.Floors).forEach(([floorNumber, floorData]) => {
+            if (floorNumber === "placeholder") return;
+            floorsCount += 1;
+            if (floorData && typeof floorData === "object" && floorData.Rooms) {
+              Object.entries(floorData.Rooms).forEach(([roomName]) => {
+                if (roomName === "placeholder") return;
+                roomsCount += 1;
               });
             }
+          });
+        }
 
-            let noFloorRoomsHTML = "";
-            if (!building.floors && building.rooms) {
-              noFloorRoomsHTML = Object.entries(building.rooms)
-                .map(
-                  ([roomId, room]) => `
-              <div class="room">
-                Room: ${room.roomName} (${room.description})
-                <button onclick="editRoomNoFloor('${buildingId}', '${roomId}', '${room.roomName}', '${room.description}')">Edit</button>
-                <button onclick="deleteRoomNoFloor('${buildingId}', '${roomId}')">Delete</button>
+        if (details.Rooms) {
+          Object.entries(details.Rooms).forEach(([roomName]) => {
+            if (roomName === "placeholder") return;
+            roomsCount += 1;
+          });
+        }
+
+        return { floorsCount, roomsCount };
+      }
+
+      function updateMetrics(data) {
+        if (!totalBuildingsCountEl || !totalFloorsCountEl || !totalRoomsCountEl)
+          return;
+        const entries = Object.entries(data || {}).filter(
+          ([key]) => key !== "placeholder",
+        );
+        const totalBuildings = entries.length;
+        let totalFloors = 0;
+        let totalRooms = 0;
+
+        entries.forEach(([, buildingData]) => {
+          const { floorsCount, roomsCount } =
+            calculateBuildingCounts(buildingData);
+          totalFloors += floorsCount;
+          totalRooms += roomsCount;
+        });
+
+        totalBuildingsCountEl.textContent = totalBuildings;
+        totalFloorsCountEl.textContent = totalFloors;
+        totalRoomsCountEl.textContent = totalRooms;
+      }
+
+      function ensureLoadingIndicator() {
+        if (!loadingIndicator) {
+          loadingIndicator = document.createElement("div");
+          loadingIndicator.id = "buildings-loading";
+          loadingIndicator.className = "events-loading-message";
+          loadingIndicator.innerHTML = `
+          <div class="events-loading-spinner" aria-hidden="true"></div>
+          <p>Loading buildings...</p>
+        `;
+        }
+        return loadingIndicator;
+      }
+
+      function showLoadingIndicator() {
+        if (!buildingsList) return;
+        const indicator = ensureLoadingIndicator();
+        indicator.style.display = "flex";
+        buildingsList.innerHTML = "";
+        buildingsList.appendChild(indicator);
+      }
+
+      function hideLoadingIndicator() {
+        if (!buildingsList) return;
+        if (loadingIndicator && loadingIndicator.parentNode === buildingsList) {
+          buildingsList.removeChild(loadingIndicator);
+        }
+      }
+
+      // Add this JavaScript to your location.html (replace the renderBuildingsList function)
+
+      function renderBuildingsList(data, filterTerm = "") {
+        if (!buildingsList) return;
+        hideLoadingIndicator();
+        const normalizedTerm = filterTerm.trim().toLowerCase();
+        buildingsList.innerHTML = "";
+
+        const entries = Object.entries(data || {})
+          .filter(([key]) => key !== "placeholder")
+          .filter(([name]) => {
+            if (!normalizedTerm) return true;
+            return name.toLowerCase().includes(normalizedTerm);
+          })
+          .sort((a, b) =>
+            a[0].localeCompare(b[0], undefined, { sensitivity: "base" }),
+          );
+
+        if (!entries.length) {
+          const message = filterTerm
+            ? "No buildings match your search."
+            : "No buildings yet. Use the quick add form above to create one.";
+          buildingsList.innerHTML = `
+      <div class="empty-state-card">
+        <h3>${filterTerm ? "No results" : "Add your first building"}</h3>
+        <p>${escapeHtml(message)}</p>
+      </div>
+    `;
+          return;
+        }
+
+        entries.forEach(([buildingName, rawBuildingData]) => {
+          const buildingDetails =
+            rawBuildingData && typeof rawBuildingData === "object"
+              ? rawBuildingData
+              : {};
+          const { floorsCount, roomsCount } =
+            calculateBuildingCounts(buildingDetails);
+          const buildingInitial = escapeHtml(
+            buildingName.charAt(0).toUpperCase(),
+          );
+          const buildingLabel = escapeHtml(buildingName);
+          const card = document.createElement("article");
+          card.className = "building-card";
+
+          const floorEntries = buildingDetails.Floors
+            ? Object.entries(buildingDetails.Floors).filter(
+                ([floorNumber]) => floorNumber !== "placeholder",
+              )
+            : [];
+
+          floorEntries.sort((a, b) =>
+            a[0].localeCompare(b[0], undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          );
+
+          const roomNoFloorEntries = buildingDetails.Rooms
+            ? Object.entries(buildingDetails.Rooms).filter(
+                ([roomName]) => roomName !== "placeholder",
+              )
+            : [];
+
+          // Generate unique IDs for this building
+          const buildingId = `building-${buildingName.replace(/\s+/g, "-")}`;
+
+          let cardHtml = `
+      <div class="building-card-top">
+        <div class="building-card-mobile-header" onclick="toggleBuildingDetails('${buildingId}')">
+          <div class="building-identity">
+            <span class="building-avatar" aria-hidden="true">${buildingInitial}</span>
+            <div class="building-desktop-name">
+              <h3>${buildingLabel}</h3>
+            </div>
+            <div class="building-mobile-summary">
+              <h3>${buildingLabel}</h3>
+              <div class="building-mobile-counts">
+                <span>📁 ${floorsCount} floor${floorsCount !== 1 ? "s" : ""}</span>
+                <span>🚪 ${roomsCount} room${roomsCount !== 1 ? "s" : ""}</span>
               </div>
-            `
-                )
-                .join("");
-            }
+            </div>
+          </div>
+          <span class="building-chevron">▶</span>
+        </div>
+        <div class="building-meta-group">
+          <div class="meta-item">
+            <span class="meta-value">${floorsCount}</span>
+            <span class="meta-label">Floors</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-value">${roomsCount}</span>
+            <span class="meta-label">Rooms</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="building-details-collapsible" id="${buildingId}">
+        <div class="building-details-inner">
+          <div class="building-mobile-actions">
+            <button class="primary" onclick='addFloor(${JSON.stringify(buildingName)})'>➕ Add Floor</button>
+            <button class="primary" onclick='addRoomNoFloor(${JSON.stringify(buildingName)})'>➕ Add Room</button>
+            <button onclick='editBuilding(${JSON.stringify(buildingName)})'>✏️ Rename</button>
+            <button class="danger" onclick='deleteBuilding(${JSON.stringify(buildingName)})'>🗑️ Delete</button>
+          </div>
+    `;
 
-            const addRoomNoFloorBtn =
-              !building.floors || Object.keys(building.floors).length === 0
-                ? `<button onclick="addRoomNoFloor('${buildingId}')">Add Room</button>`
-                : "";
+          // Desktop actions (hidden on mobile)
+          cardHtml += `
+      <div class="building-card-actions">
+        <button class="building-action primary" onclick='addFloor(${JSON.stringify(buildingName)})'>Add Floor</button>
+        <button class="building-action primary" onclick='addRoomNoFloor(${JSON.stringify(buildingName)})'>Add Room</button>
+        <button class="building-action ghost" onclick='editBuilding(${JSON.stringify(buildingName)})'>Rename</button>
+        <button class="building-action danger" onclick='deleteBuilding(${JSON.stringify(buildingName)})'>Delete</button>
+      </div>
+      <div class="building-card-divider"></div>
+    `;
 
-            buildingDiv.innerHTML = `
-            <button class="accordion">${building.name}</button>
-            <div class="panel">
-              <button onclick="editBuilding('${buildingId}', '${building.name}')">Edit Building</button>
-              <button onclick="deleteBuilding('${buildingId}')">Delete Building</button>
-              <button onclick="addFloor('${buildingId}')">Add Floor</button>
-              ${addRoomNoFloorBtn}
-              <div class="rooms">${noFloorRoomsHTML}</div>
-              <div class="floors">${floorsHTML}</div>
+          if (!floorEntries.length && !roomNoFloorEntries.length) {
+            cardHtml += `
+        <div class="building-empty">
+          <p>No floors or rooms added yet. Start by adding a floor or standalone room.</p>
+        </div>
+      `;
+          } else {
+            cardHtml += '<div class="building-details">';
+
+            // Render floors with collapsible sections
+            if (floorEntries.length) {
+              floorEntries.forEach(([floorNumber, floorData]) => {
+                const rooms =
+                  floorData && typeof floorData === "object" && floorData.Rooms
+                    ? Object.entries(floorData.Rooms).filter(
+                        ([roomName]) => roomName !== "placeholder",
+                      )
+                    : [];
+                const roomsCountForFloor = rooms.length;
+                const floorLabel = escapeHtml(floorNumber);
+                const floorId = `${buildingId}-floor-${floorNumber}`;
+
+                cardHtml += `
+            <div class="floor-section">
+              <div class="floor-mobile-header" onclick="toggleFloorDetails('${floorId}')">
+                <div class="floor-mobile-info">
+                  <span class="floor-badge">Floor</span>
+                  <h4>${floorLabel}</h4>
+                  <p>${roomsCountForFloor ? roomsCountForFloor + " room" + (roomsCountForFloor !== 1 ? "s" : "") : "No rooms yet"}</p>
+                </div>
+                <span class="floor-chevron">▶</span>
+              </div>
+              
+              <div class="floor-content-collapsible" id="${floorId}">
+                <div class="floor-content-inner">
+                  <div class="floor-mobile-actions">
+                    <button onclick='addRoom(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)})'>➕ Add Room</button>
+                    <button class="danger" onclick='deleteFloor(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)})'>🗑️ Delete Floor</button>
+                  </div>
+          `;
+
+                // Desktop floor header (hidden on mobile)
+                cardHtml += `
+            <div class="floor-header">
+              <div>
+                <span class="floor-badge">Floor</span>
+                <h4>${floorLabel}</h4>
+                <p>${roomsCountForFloor ? formatPlural(roomsCountForFloor, "room") : "No rooms yet"}</p>
+              </div>
+              <div class="floor-actions">
+                <button class="building-action compact" onclick='addRoom(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)})'>Add Room</button>
+                <button class="building-action compact danger" onclick='deleteFloor(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)})'>Delete Floor</button>
+              </div>
             </div>
           `;
 
-            buildingsList.appendChild(buildingDiv);
-          });
-        }
-      });
-
-      // Accordion toggle
-      document.addEventListener("click", function (e) {
-        if (e.target.classList.contains("accordion")) {
-          e.target.classList.toggle("active");
-          const panel = e.target.nextElementSibling;
-          panel.style.display =
-            panel.style.display === "block" ? "none" : "block";
-        }
-      });
-
-      // Management Functions
-      window.editBuilding = (id, name) => {
-        Swal.fire({
-          title: "Edit Building Name",
-          input: "text",
-          inputValue: name,
-          showCancelButton: true,
-          confirmButtonText: "Save",
-          confirmButtonColor: "#007bff",
-          preConfirm: (newName) => {
-            if (newName) {
-              update(ref(db, `buildings/${id}`), { name: newName });
-            }
-          },
-        });
-      };
-
-      window.deleteBuilding = (id) => {
-        Swal.fire({
-          title: "Are you sure?",
-          text: "You won't be able to revert this!",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Delete",
-          confirmButtonColor: "#007bff",
-          cancelButtonText: "Cancel",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            remove(ref(db, `buildings/${id}`));
-            Swal.fire("Deleted!", "Building has been deleted.", "success");
-          }
-        });
-      };
-
-      window.addFloor = (buildingId) => {
-        Swal.fire({
-          title: "Add Floor",
-          input: "number",
-          inputPlaceholder: "Floor number",
-          showCancelButton: true,
-          confirmButtonText: "Add Floor",
-          confirmButtonColor: "#007bff",
-          preConfirm: (floorNumber) => {
-            if (floorNumber) {
-              const newFloorRef = push(
-                ref(db, `buildings/${buildingId}/floors`)
-              );
-              set(newFloorRef, {
-                floorNumber: parseInt(floorNumber),
-                rooms: {},
-              });
-            }
-          },
-        });
-      };
-
-      window.editFloor = (buildingId, floorId, currentNumber) => {
-        Swal.fire({
-          title: "Edit Floor Number",
-          input: "number",
-          inputValue: currentNumber,
-          showCancelButton: true,
-          confirmButtonText: "Save",
-          confirmButtonColor: "#007bff",
-          preConfirm: (newNumber) => {
-            if (newNumber) {
-              update(ref(db, `buildings/${buildingId}/floors/${floorId}`), {
-                floorNumber: parseInt(newNumber),
-              });
-            }
-          },
-        });
-      };
-
-      window.deleteFloor = (buildingId, floorId) => {
-        Swal.fire({
-          title: "Are you sure?",
-          text: "You won't be able to revert this!",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Delete Floor",
-          confirmButtonColor: "#007bff",
-          cancelButtonText: "Cancel",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            remove(ref(db, `buildings/${buildingId}/floors/${floorId}`));
-            Swal.fire("Deleted!", "Floor has been deleted.", "success");
-          }
-        });
-      };
-
-      window.addRoom = (buildingId, floorId) => {
-        Swal.fire({
-          title: "Add Room",
-          html: `
-      <input id="room-name" class="swal2-input" placeholder="Room name">
-      <textarea id="room-desc" class="swal2-textarea" placeholder="Description"></textarea>
-    `,
-          showCancelButton: true,
-          confirmButtonText: "Add Room",
-          confirmButtonColor: "#007bff",
-          preConfirm: () => {
-            const name = document.getElementById("room-name").value;
-            const desc = document.getElementById("room-desc").value;
-            if (name) {
-              const newRoomRef = push(
-                ref(db, `buildings/${buildingId}/floors/${floorId}/rooms`)
-              );
-              set(newRoomRef, { roomName: name, description: desc || "" });
-            }
-          },
-        });
-      };
-
-      window.editRoom = (buildingId, floorId, roomId, name, desc) => {
-        Swal.fire({
-          title: "Edit Room",
-          html: `
-      <input id="room-name" class="swal2-input" value="${name}" placeholder="Room name">
-      <textarea id="room-desc" class="swal2-textarea" placeholder="Description">${desc}</textarea>
-    `,
-          showCancelButton: true,
-          confirmButtonText: "Update Room",
-          confirmButtonColor: "#007bff",
-          preConfirm: () => {
-            const newName = document.getElementById("room-name").value;
-            const newDesc = document.getElementById("room-desc").value;
-            if (newName) {
-              update(
-                ref(
-                  db,
-                  `buildings/${buildingId}/floors/${floorId}/rooms/${roomId}`
-                ),
-                {
-                  roomName: newName,
-                  description: newDesc || "",
+                if (roomsCountForFloor) {
+                  cardHtml += '<div class="rooms-grid">';
+                  rooms.forEach(([roomName]) => {
+                    const roomLabel = escapeHtml(roomName);
+                    cardHtml += `
+                <div class="room-pill">
+                  <span class="room-name">${roomLabel}</span>
+                  <div class="room-actions">
+                    <button class="room-action" title="Rename room" onclick='editRoom(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)}, ${JSON.stringify(roomName)})'>✏️ Edit</button>
+                    <button class="room-action danger" title="Delete room" onclick='deleteRoom(${JSON.stringify(buildingName)}, ${JSON.stringify(floorNumber)}, ${JSON.stringify(roomName)})'>🗑️</button>
+                  </div>
+                </div>
+              `;
+                  });
+                  cardHtml += "</div>";
+                } else {
+                  cardHtml += '<div class="floor-empty">No rooms yet.</div>';
                 }
-              );
-            }
-          },
-        });
-      };
 
-      window.deleteRoom = (buildingId, floorId, roomId) => {
-        Swal.fire({
-          title: "Are you sure?",
-          text: "Delete this room?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Delete",
-          confirmButtonColor: "#007bff",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            remove(
-              ref(
-                db,
-                `buildings/${buildingId}/floors/${floorId}/rooms/${roomId}`
-              )
-            );
-            Swal.fire("Deleted!", "Room has been deleted.", "success");
-          }
-        });
-      };
-
-      window.addRoomNoFloor = (buildingId) => {
-        Swal.fire({
-          title: "Add Room",
-          html: `
-      <input id="room-name" class="swal2-input" placeholder="Room name">
-      <textarea id="room-desc" class="swal2-textarea" placeholder="Description"></textarea>
-    `,
-          showCancelButton: true,
-          confirmButtonText: "Add Room",
-          confirmButtonColor: "#007bff",
-          preConfirm: () => {
-            const name = document.getElementById("room-name").value;
-            const desc = document.getElementById("room-desc").value;
-            if (name) {
-              const newRoomRef = push(ref(db, `buildings/${buildingId}/rooms`));
-              set(newRoomRef, { roomName: name, description: desc || "" });
-            }
-          },
-        });
-      };
-
-      window.editRoomNoFloor = (buildingId, roomId, name, desc) => {
-        Swal.fire({
-          title: "Edit Room",
-          html: `
-      <input id="room-name" class="swal2-input" value="${name}" placeholder="Room name">
-      <textarea id="room-desc" class="swal2-textarea" placeholder="Description">${desc}</textarea>
-    `,
-          showCancelButton: true,
-          confirmButtonText: "Update Room",
-          confirmButtonColor: "#007bff",
-          preConfirm: () => {
-            const newName = document.getElementById("room-name").value;
-            const newDesc = document.getElementById("room-desc").value;
-            if (newName) {
-              update(ref(db, `buildings/${buildingId}/rooms/${roomId}`), {
-                roomName: newName,
-                description: newDesc || "",
+                cardHtml += `
+                </div>
+              </div>
+            </div>
+          `;
               });
             }
-          },
+
+            // Render standalone rooms with collapsible section
+            if (roomNoFloorEntries.length) {
+              const standaloneId = `${buildingId}-standalone`;
+              cardHtml += `
+          <div class="floor-section no-floor">
+            <div class="floor-mobile-header" onclick="toggleFloorDetails('${standaloneId}')">
+              <div class="floor-mobile-info">
+                <span class="floor-badge">Standalone</span>
+                <h4>Rooms</h4>
+                <p>${roomNoFloorEntries.length} room${roomNoFloorEntries.length !== 1 ? "s" : ""}</p>
+              </div>
+              <span class="floor-chevron">▶</span>
+            </div>
+            
+            <div class="floor-content-collapsible" id="${standaloneId}">
+              <div class="floor-content-inner">
+                <div class="rooms-grid">
+        `;
+
+              roomNoFloorEntries.forEach(([roomName]) => {
+                const roomLabel = escapeHtml(roomName);
+                cardHtml += `
+            <div class="room-pill">
+              <span class="room-name">${roomLabel}</span>
+              <div class="room-actions">
+                <button class="room-action" title="Rename room" onclick='editRoomNoFloor(${JSON.stringify(buildingName)}, ${JSON.stringify(roomName)})'>✏️ Edit</button>
+                <button class="room-action danger" title="Delete room" onclick='deleteRoomNoFloor(${JSON.stringify(buildingName)}, ${JSON.stringify(roomName)})'>🗑️</button>
+              </div>
+            </div>
+          `;
+              });
+
+              cardHtml += `
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+            }
+
+            cardHtml += "</div>";
+          }
+
+          cardHtml += `
+        </div>
+      </div>
+    `;
+
+          card.innerHTML = cardHtml;
+          buildingsList.appendChild(card);
         });
+      }
+
+      // Toggle building details
+      window.toggleBuildingDetails = function (buildingId) {
+        const element = document.getElementById(buildingId);
+        const chevron =
+          element.previousElementSibling.querySelector(".building-chevron");
+
+        if (element.classList.contains("expanded")) {
+          element.classList.remove("expanded");
+          chevron.classList.remove("expanded");
+        } else {
+          element.classList.add("expanded");
+          chevron.classList.add("expanded");
+        }
       };
 
-      window.deleteRoomNoFloor = (buildingId, roomId) => {
-        Swal.fire({
-          title: "Are you sure?",
-          text: "Delete this room?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Delete",
-          confirmButtonColor: "#007bff",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            remove(ref(db, `buildings/${buildingId}/rooms/${roomId}`));
-            Swal.fire("Deleted!", "Room has been deleted.", "success");
+      // Toggle floor details
+      window.toggleFloorDetails = function (floorId) {
+        const element = document.getElementById(floorId);
+        const header = element.previousElementSibling;
+        const chevron = header.querySelector(".floor-chevron");
+
+        if (element.classList.contains("expanded")) {
+          element.classList.remove("expanded");
+          chevron.classList.remove("expanded");
+        } else {
+          element.classList.add("expanded");
+          chevron.classList.add("expanded");
+        }
+      };
+      if (buildingSearchInput) {
+        buildingSearchInput.addEventListener("input", (event) => {
+          const searchTerm = event.target.value || "";
+          renderBuildingsList(buildingsData, searchTerm);
+        });
+      }
+
+      showLoadingIndicator();
+
+      // Load buildings
+      onValue(
+        ref(db, "Buildings"),
+        (snapshot) => {
+          buildingsData = snapshot.val() || {};
+          updateMetrics(buildingsData);
+          const searchTerm = buildingSearchInput
+            ? buildingSearchInput.value
+            : "";
+          renderBuildingsList(buildingsData, searchTerm);
+        },
+        (error) => {
+hideLoadingIndicator();
+          buildingsData = {};
+          updateMetrics(buildingsData);
+          if (buildingsList) {
+            buildingsList.innerHTML = `
+            <div class="empty-state-card error">
+              <h3>Unable to load buildings</h3>
+              <p>Please check your connection and try again.</p>
+            </div>
+          `;
+          }
+        },
+      );
+
+      // Add building (Enhanced with security)
+      document
+        .getElementById("addBuildingBtn")
+        .addEventListener("click", async () => {
+          if (isAddingBuilding) {
+            Swal.fire(
+              "Operation in Progress",
+              "Please wait for the current operation to complete.",
+              "info",
+            );
+            return;
+          }
+
+          const input = document.getElementById("buildingName");
+          const rawName = input.value.trim();
+
+          if (!rawName) {
+            Swal.fire(
+              "Missing Information",
+              "Please enter a building name.",
+              "warning",
+            );
+            return;
+          }
+
+          try {
+            isAddingBuilding = true;
+            const validatedName = validateName(rawName, "Building name");
+
+            // Check if building already exists
+            const exists = await buildingExists(validatedName);
+            if (exists) {
+              Swal.fire({
+                title: "Building Exists",
+                text: `A building named "${validatedName}" already exists.`,
+                icon: "warning",
+              });
+              return;
+            }
+
+            const bRef = ref(db, `Buildings/${validatedName}`);
+            await set(bRef, {
+              placeholder: true,
+              createdAt: new Date().toISOString(),
+              createdBy: auth.currentUser?.uid || "unknown",
+            });
+
+            // Log building creation
+            adminTrail.logBuildingAction(
+              "CREATE",
+              validatedName,
+              validatedName,
+            );
+await Swal.fire({
+              title: "Success!",
+              text: `Building "${validatedName}" created successfully.`,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+
+            input.value = "";
+            input.focus();
+          } catch (error) {
+Swal.fire({
+              title: "Error",
+              text:
+                error.message || "Failed to create building. Please try again.",
+              icon: "error",
+            });
+          } finally {
+            isAddingBuilding = false;
           }
         });
+
+      // Edit building (Enhanced with security)
+      window.editBuilding = async (name) => {
+        const lockKey = createLockKey("editBuilding", name);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "This building is currently being edited.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          const { value: newName } = await Swal.fire({
+            title: "Rename Building",
+            input: "text",
+            inputValue: name,
+            inputPlaceholder: "Enter new building name",
+            showCancelButton: true,
+            confirmButtonText: "Rename",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (inputValue) => {
+              if (!inputValue || !inputValue.trim()) {
+                Swal.showValidationMessage("Building name cannot be empty");
+                return false;
+              }
+
+              try {
+                const validated = validateName(
+                  inputValue.trim(),
+                  "Building name",
+                );
+
+                if (validated === name) {
+                  Swal.showValidationMessage(
+                    "New name is the same as current name",
+                  );
+                  return false;
+                }
+
+                // Check if new name already exists
+                const exists = await buildingExists(validated);
+                if (exists) {
+                  Swal.showValidationMessage(
+                    `Building "${validated}" already exists`,
+                  );
+                  return false;
+                }
+
+                return validated;
+              } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+              }
+            },
+          });
+
+          if (!newName) return;
+
+          // Create backup for rollback
+          const oldRef = ref(db, `Buildings/${name}`);
+          const snap = await get(oldRef);
+
+          if (!snap.exists()) {
+            Swal.fire(
+              "Error",
+              "Building not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const buildingData = snap.val();
+          const newRef = ref(db, `Buildings/${newName}`);
+
+          // Update building data with metadata
+          const updatedData = {
+            ...buildingData,
+            lastModified: new Date().toISOString(),
+            modifiedBy: auth.currentUser?.uid || "unknown",
+            previousName: name,
+          };
+
+          try {
+            // Write to new location
+            await set(newRef, updatedData);
+
+            // Remove old location
+            await remove(oldRef);
+
+            // Log building rename
+            adminTrail.logBuildingAction("RENAME", newName, newName);
+await Swal.fire({
+              title: "Renamed!",
+              html: `<strong>${escapeHtml(name)}</strong> → <strong>${escapeHtml(newName)}</strong>`,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (error) {
+            // Rollback attempt
+try {
+              await set(oldRef, buildingData);
+              await remove(newRef);
+              Swal.fire(
+                "Error",
+                "Rename failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Rename failed and rollback unsuccessful. Please contact administrator.",
+                "error",
+              );
+            }
+          }
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to rename building.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
       };
+
+      // Delete building (Enhanced with security)
+      window.deleteBuilding = async (name) => {
+        const lockKey = createLockKey("deleteBuilding", name);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "This building is currently being modified.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          // Get building data to show what will be deleted
+          const buildingRef = ref(db, `Buildings/${name}`);
+          const snapshot = await get(buildingRef);
+
+          if (!snapshot.exists()) {
+            Swal.fire(
+              "Error",
+              "Building not found. It may have already been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const buildingData = snapshot.val();
+          const { floorsCount, roomsCount } =
+            calculateBuildingCounts(buildingData);
+
+          // Enhanced confirmation with details
+          const result = await Swal.fire({
+            title: `Delete "${escapeHtml(name)}"?`,
+            html: `
+            <div style="text-align: left;">
+              <p><strong>This building contains:</strong></p>
+              <ul style="margin: 10px 0;">
+                <li>${floorsCount} floor${floorsCount !== 1 ? "s" : ""}</li>
+                <li>${roomsCount} room${roomsCount !== 1 ? "s" : ""}</li>
+              </ul>
+              <p style="color: #d32f2f; margin-top: 15px;">
+                ⚠️ This action cannot be undone. All floors and rooms will be permanently deleted.
+              </p>
+            </div>
+          `,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, Delete",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#6b7280",
+            focusCancel: true,
+          });
+
+          if (!result.isConfirmed) return;
+
+          // Store backup for rollback
+          const backup = {
+            path: `Buildings/${name}`,
+            data: buildingData,
+          };
+
+          try {
+            await remove(buildingRef);
+
+            // Log building deletion
+            adminTrail.logBuildingAction("DELETE", name, name);
+await Swal.fire({
+              title: "Deleted!",
+              text: `Building "${name}" and all its contents removed.`,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (error) {
+            // Rollback attempt
+try {
+              await set(ref(db, backup.path), backup.data);
+              Swal.fire(
+                "Error",
+                "Deletion failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Deletion failed and rollback unsuccessful. Please contact administrator.",
+                "error",
+              );
+            }
+          }
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to delete building.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      // Add floor (Enhanced with security)
+      window.addFloor = async (buildingName) => {
+        const lockKey = createLockKey("addFloor", buildingName);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "Another floor operation is in progress.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          // Verify building exists
+          const buildingExists = await get(
+            ref(db, `Buildings/${buildingName}`),
+          );
+          if (!buildingExists.exists()) {
+            Swal.fire(
+              "Error",
+              "Building not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const { value: num } = await Swal.fire({
+            title: `Add Floor to ${escapeHtml(buildingName)}`,
+            input: "number",
+            inputAttributes: {
+              min: 0,
+              step: 1,
+              max: 999,
+            },
+            inputPlaceholder: "Floor number (e.g., 1, 2, 3)",
+            showCancelButton: true,
+            confirmButtonText: "Add Floor",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (value) => {
+              if (value === null || value === undefined || value === "") {
+                Swal.showValidationMessage("Please enter a floor number");
+                return false;
+              }
+
+              const floorNum = parseInt(value);
+              if (isNaN(floorNum) || floorNum < 0) {
+                Swal.showValidationMessage("Floor number must be 0 or greater");
+                return false;
+              }
+
+              // Check if floor already exists
+              const exists = await floorExists(buildingName, floorNum);
+              if (exists) {
+                Swal.showValidationMessage(`Floor ${floorNum} already exists`);
+                return false;
+              }
+
+              return floorNum;
+            },
+          });
+
+          if (num === undefined) return;
+
+          const floorRef = ref(db, `Buildings/${buildingName}/Floors/${num}`);
+          await set(floorRef, {
+            placeholder: true,
+            createdAt: new Date().toISOString(),
+            createdBy: auth.currentUser?.uid || "unknown",
+          });
+
+          // Log floor creation
+          adminTrail.logAction(
+            "CREATE",
+            "FLOOR",
+            `${buildingName}-Floor-${num}`,
+            { buildingName, floorNumber: num },
+            "MEDIUM",
+            "BUILDING_MANAGEMENT",
+          );
+await Swal.fire({
+            title: "Added!",
+            text: `Floor ${num} created successfully.`,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to create floor.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      // Delete floor
+      window.deleteFloor = async (bName, fNum) => {
+        // First check if floor has rooms
+        const floorRoomsRef = ref(
+          db,
+          `Buildings/${bName}/Floors/${fNum}/Rooms`,
+        );
+        const floorRoomsSnap = await get(floorRoomsRef);
+        const floorRooms = floorRoomsSnap.val() || {};
+        const floorRoomKeys = Object.keys(floorRooms).filter(
+          (key) => key !== "placeholder",
+        );
+
+        if (floorRoomKeys.length > 0) {
+          // Floor has rooms - warn user
+          const deleteWithRooms = await Swal.fire({
+            title: `Delete Floor ${fNum}?`,
+            text: `This floor has ${floorRoomKeys.length} room${floorRoomKeys.length > 1 ? "s" : ""}. Deleting the floor will also delete all its rooms.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Delete Floor & Rooms",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#ef4444",
+          });
+
+          if (!deleteWithRooms.isConfirmed) return;
+        } else {
+          // Floor is empty - simple confirmation
+          const res = await Swal.fire({
+            title: `Delete Floor ${fNum}?`,
+            showCancelButton: true,
+          });
+          if (!res.isConfirmed) return;
+        }
+
+        // Check if this is the last floor in the building
+        const floorsRef = ref(db, `Buildings/${bName}/Floors`);
+        const floorsSnap = await get(floorsRef);
+        const floors = floorsSnap.val() || {};
+        const floorKeys = Object.keys(floors).filter(
+          (key) => key !== "placeholder" && key !== fNum.toString(),
+        );
+
+        // Also check if building has standalone rooms
+        const roomsRef = ref(db, `Buildings/${bName}/Rooms`);
+        const roomsSnap = await get(roomsRef);
+        const rooms = roomsSnap.val() || {};
+        const roomKeys = Object.keys(rooms).filter(
+          (key) => key !== "placeholder",
+        );
+
+        if (floorKeys.length === 0 && roomKeys.length === 0) {
+          // This is the last floor and no standalone rooms - ask if they want to keep the building
+          const keepBuilding = await Swal.fire({
+            title: "Last Floor in Building",
+            text: `This is the last floor in ${bName}. Do you want to keep the building or delete it too?`,
+            icon: "question",
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: "Keep Building",
+            denyButtonText: "Delete Building",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            denyButtonColor: "#d93025",
+          });
+
+          if (keepBuilding.isDismissed) return; // User cancelled
+
+          await remove(ref(db, `Buildings/${bName}/Floors/${fNum}`));
+
+          if (keepBuilding.isConfirmed) {
+            // Keep building by adding placeholder
+            await set(ref(db, `Buildings/${bName}`), { placeholder: true });
+            Swal.fire(
+              "Deleted!",
+              "Floor removed. Building preserved.",
+              "success",
+            );
+          } else if (keepBuilding.isDenied) {
+            // Delete the entire building
+            await remove(ref(db, `Buildings/${bName}`));
+            adminTrail.logBuildingAction("DELETE", bName, bName);
+            Swal.fire("Deleted!", "Floor and building removed.", "success");
+          }
+        } else {
+          // Not the last floor, just delete it
+          await remove(ref(db, `Buildings/${bName}/Floors/${fNum}`));
+          Swal.fire("Deleted!", "Floor removed.", "success");
+        }
+
+        // Log floor deletion
+        adminTrail.logAction(
+          "DELETE",
+          "FLOOR",
+          `${bName}-Floor-${fNum}`,
+          { buildingName: bName, floorNumber: fNum },
+          "HIGH",
+          "BUILDING_MANAGEMENT",
+        );
+};
+
+      // Add room under a floor (Enhanced with security)
+      window.addRoom = async (bName, fNum) => {
+        const lockKey = createLockKey("addRoom", bName, fNum);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "Another room operation is in progress.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          // Verify floor exists
+          const floorExists = await get(
+            ref(db, `Buildings/${bName}/Floors/${fNum}`),
+          );
+          if (!floorExists.exists()) {
+            Swal.fire(
+              "Error",
+              "Floor not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const { value: rName } = await Swal.fire({
+            title: `Add Room to Floor ${escapeHtml(String(fNum))}`,
+            input: "text",
+            inputPlaceholder: "Enter room name",
+            showCancelButton: true,
+            confirmButtonText: "Add Room",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (value) => {
+              if (!value || !value.trim()) {
+                Swal.showValidationMessage("Room name cannot be empty");
+                return false;
+              }
+
+              try {
+                const validated = validateName(value.trim(), "Room name");
+
+                // Check if room already exists
+                const exists = await roomExistsInLocation(
+                  bName,
+                  fNum,
+                  validated,
+                );
+                if (exists) {
+                  Swal.showValidationMessage(
+                    `Room "${validated}" already exists on this floor`,
+                  );
+                  return false;
+                }
+
+                return validated;
+              } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+              }
+            },
+          });
+
+          if (!rName) return;
+
+          const rRef = ref(
+            db,
+            `Buildings/${bName}/Floors/${fNum}/Rooms/${rName}`,
+          );
+          await set(rRef, {
+            buildingName: bName,
+            floorNumber: parseInt(fNum),
+            roomName: rName,
+            createdAt: new Date().toISOString(),
+            createdBy: auth.currentUser?.uid || "unknown",
+          });
+
+          const placeholderRef = ref(
+            db,
+            `Buildings/${bName}/Floors/${fNum}/placeholder`,
+          );
+          await remove(placeholderRef).catch(() => {});
+
+          // Log room creation
+          adminTrail.logAction(
+            "CREATE",
+            "ROOM",
+            `${bName}-Floor-${fNum}-${rName}`,
+            { buildingName: bName, floorNumber: fNum, roomName: rName },
+            "MEDIUM",
+            "BUILDING_MANAGEMENT",
+          );
+await Swal.fire({
+            title: "Added!",
+            text: `Room "${rName}" added successfully.`,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to create room.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      // Edit room (under floor) - Enhanced with security
+      window.editRoom = async (bName, fNum, rName) => {
+        const lockKey = createLockKey("editRoom", bName, fNum, rName);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "This room is currently being edited.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          const { value: newName } = await Swal.fire({
+            title: "Rename Room",
+            input: "text",
+            inputValue: rName,
+            inputPlaceholder: "Enter new room name",
+            showCancelButton: true,
+            confirmButtonText: "Rename",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (value) => {
+              if (!value || !value.trim()) {
+                Swal.showValidationMessage("Room name cannot be empty");
+                return false;
+              }
+
+              try {
+                const validated = validateName(value.trim(), "Room name");
+
+                if (validated === rName) {
+                  Swal.showValidationMessage(
+                    "New name is the same as current name",
+                  );
+                  return false;
+                }
+
+                // Check if new name already exists
+                const exists = await roomExistsInLocation(
+                  bName,
+                  fNum,
+                  validated,
+                );
+                if (exists) {
+                  Swal.showValidationMessage(
+                    `Room "${validated}" already exists on this floor`,
+                  );
+                  return false;
+                }
+
+                return validated;
+              } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+              }
+            },
+          });
+
+          if (!newName) return;
+
+          const oldRef = ref(
+            db,
+            `Buildings/${bName}/Floors/${fNum}/Rooms/${rName}`,
+          );
+          const snap = await get(oldRef);
+
+          if (!snap.exists()) {
+            Swal.fire(
+              "Error",
+              "Room not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const roomData = snap.val();
+          const backup = { path: oldRef, data: roomData };
+
+          try {
+            const updatedData = {
+              ...roomData,
+              roomName: newName,
+              lastModified: new Date().toISOString(),
+              modifiedBy: auth.currentUser?.uid || "unknown",
+              previousName: rName,
+            };
+
+            const newRef = ref(
+              db,
+              `Buildings/${bName}/Floors/${fNum}/Rooms/${newName}`,
+            );
+            await set(newRef, updatedData);
+            await remove(oldRef);
+
+            // Log room rename
+            adminTrail.logAction(
+              "RENAME",
+              "ROOM",
+              `${bName}-Floor-${fNum}-${newName}`,
+              {
+                buildingName: bName,
+                floorNumber: fNum,
+                oldRoomName: rName,
+                newRoomName: newName,
+              },
+              "MEDIUM",
+              "BUILDING_MANAGEMENT",
+            );
+await Swal.fire({
+              title: "Renamed!",
+              text: `Room updated to "${newName}".`,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (error) {
+            // Rollback
+try {
+              await set(oldRef, roomData);
+              await remove(
+                ref(db, `Buildings/${bName}/Floors/${fNum}/Rooms/${newName}`),
+              );
+              Swal.fire(
+                "Error",
+                "Rename failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Rename failed and rollback unsuccessful.",
+                "error",
+              );
+            }
+          }
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to rename room.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      // Delete room (under floor)
+      window.deleteRoom = async (bName, fNum, rName) => {
+        const res = await Swal.fire({
+          title: `Delete ${rName}?`,
+          showCancelButton: true,
+        });
+        if (!res.isConfirmed) return;
+
+        // Check if this is the last room in the floor
+        const floorRef = ref(db, `Buildings/${bName}/Floors/${fNum}/Rooms`);
+        const floorSnap = await get(floorRef);
+        const rooms = floorSnap.val() || {};
+        const roomKeys = Object.keys(rooms).filter(
+          (key) => key !== "placeholder" && key !== rName,
+        );
+
+        if (roomKeys.length === 0) {
+          // This is the last room - ask if they want to keep the floor
+          const keepFloor = await Swal.fire({
+            title: "Last Room in Floor",
+            text: `This is the last room in Floor ${fNum}. Do you want to keep the floor or delete it too?`,
+            icon: "question",
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: "Keep Floor",
+            denyButtonText: "Delete Floor",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            denyButtonColor: "#d93025",
+          });
+
+          if (keepFloor.isDismissed) return; // User cancelled
+
+          await remove(
+            ref(db, `Buildings/${bName}/Floors/${fNum}/Rooms/${rName}`),
+          );
+
+          if (keepFloor.isConfirmed) {
+            // Keep floor by adding placeholder
+            await set(ref(db, `Buildings/${bName}/Floors/${fNum}`), {
+              placeholder: true,
+            });
+            Swal.fire("Deleted!", "Room removed. Floor preserved.", "success");
+          } else if (keepFloor.isDenied) {
+            // Delete the entire floor
+            await remove(ref(db, `Buildings/${bName}/Floors/${fNum}`));
+            adminTrail.logAction(
+              "DELETE",
+              "FLOOR",
+              `${bName}-Floor-${fNum}`,
+              {
+                buildingName: bName,
+                floorNumber: fNum,
+                reason: "Last room deleted",
+              },
+              "HIGH",
+              "BUILDING_MANAGEMENT",
+            );
+            Swal.fire("Deleted!", "Room and floor removed.", "success");
+          }
+        } else {
+          // Not the last room, just delete it
+          await remove(
+            ref(db, `Buildings/${bName}/Floors/${fNum}/Rooms/${rName}`),
+          );
+          Swal.fire("Deleted!", "Room removed.", "success");
+        }
+
+        // Log room deletion
+        adminTrail.logAction(
+          "DELETE",
+          "ROOM",
+          `${bName}-Floor-${fNum}-${rName}`,
+          { buildingName: bName, floorNumber: fNum, roomName: rName },
+          "HIGH",
+          "BUILDING_MANAGEMENT",
+        );
+};
+
+      // Add room with no floor (Enhanced with security)
+      window.addRoomNoFloor = async (bName) => {
+        const lockKey = createLockKey("addRoomNoFloor", bName);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "Another room operation is in progress.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          // Verify building exists
+          const buildingExists = await get(ref(db, `Buildings/${bName}`));
+          if (!buildingExists.exists()) {
+            Swal.fire(
+              "Error",
+              "Building not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const { value: rName } = await Swal.fire({
+            title: `Add Room to ${escapeHtml(bName)}`,
+            input: "text",
+            inputPlaceholder: "Enter room name",
+            showCancelButton: true,
+            confirmButtonText: "Add Room",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (value) => {
+              if (!value || !value.trim()) {
+                Swal.showValidationMessage("Room name cannot be empty");
+                return false;
+              }
+
+              try {
+                const validated = validateName(value.trim(), "Room name");
+
+                // Check if room already exists
+                const exists = await roomExistsInLocation(
+                  bName,
+                  null,
+                  validated,
+                );
+                if (exists) {
+                  Swal.showValidationMessage(
+                    `Room "${validated}" already exists in this building`,
+                  );
+                  return false;
+                }
+
+                return validated;
+              } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+              }
+            },
+          });
+
+          if (!rName) return;
+
+          const rRef = ref(db, `Buildings/${bName}/Rooms/${rName}`);
+          await set(rRef, {
+            buildingName: bName,
+            floorNumber: 0,
+            roomName: rName,
+            createdAt: new Date().toISOString(),
+            createdBy: auth.currentUser?.uid || "unknown",
+          });
+
+          const placeholderRef = ref(db, `Buildings/${bName}/placeholder`);
+          await remove(placeholderRef).catch(() => {});
+
+          // Log standalone room creation
+          adminTrail.logAction(
+            "CREATE",
+            "ROOM",
+            `${bName}-${rName}`,
+            { buildingName: bName, roomName: rName, type: "standalone" },
+            "MEDIUM",
+            "BUILDING_MANAGEMENT",
+          );
+await Swal.fire({
+            title: "Added!",
+            text: `Room "${rName}" added successfully.`,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to create room.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      window.editRoomNoFloor = async (bName, rName) => {
+        const lockKey = createLockKey("editRoomNoFloor", bName, rName);
+
+        if (isOperationLocked(lockKey)) {
+          Swal.fire(
+            "Operation in Progress",
+            "This room is currently being edited.",
+            "info",
+          );
+          return;
+        }
+
+        try {
+          lockOperation(lockKey);
+
+          const { value: newName } = await Swal.fire({
+            title: "Rename Room",
+            input: "text",
+            inputValue: rName,
+            inputPlaceholder: "Enter new room name",
+            showCancelButton: true,
+            confirmButtonText: "Rename",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            preConfirm: async (value) => {
+              if (!value || !value.trim()) {
+                Swal.showValidationMessage("Room name cannot be empty");
+                return false;
+              }
+
+              try {
+                const validated = validateName(value.trim(), "Room name");
+
+                if (validated === rName) {
+                  Swal.showValidationMessage(
+                    "New name is the same as current name",
+                  );
+                  return false;
+                }
+
+                // Check if new name already exists
+                const exists = await roomExistsInLocation(
+                  bName,
+                  null,
+                  validated,
+                );
+                if (exists) {
+                  Swal.showValidationMessage(
+                    `Room "${validated}" already exists in this building`,
+                  );
+                  return false;
+                }
+
+                return validated;
+              } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+              }
+            },
+          });
+
+          if (!newName) return;
+
+          const oldRef = ref(db, `Buildings/${bName}/Rooms/${rName}`);
+          const snap = await get(oldRef);
+
+          if (!snap.exists()) {
+            Swal.fire(
+              "Error",
+              "Room not found. It may have been deleted.",
+              "error",
+            );
+            return;
+          }
+
+          const roomData = snap.val();
+
+          try {
+            const updatedData = {
+              ...roomData,
+              roomName: newName,
+              lastModified: new Date().toISOString(),
+              modifiedBy: auth.currentUser?.uid || "unknown",
+              previousName: rName,
+            };
+
+            const newRef = ref(db, `Buildings/${bName}/Rooms/${newName}`);
+            await set(newRef, updatedData);
+            await remove(oldRef);
+
+            // Log standalone room rename
+            adminTrail.logAction(
+              "RENAME",
+              "ROOM",
+              `${bName}-${newName}`,
+              {
+                buildingName: bName,
+                oldRoomName: rName,
+                newRoomName: newName,
+                type: "standalone",
+              },
+              "MEDIUM",
+              "BUILDING_MANAGEMENT",
+            );
+await Swal.fire({
+              title: "Renamed!",
+              text: `Room updated to "${newName}".`,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } catch (error) {
+            // Rollback
+try {
+              await set(oldRef, roomData);
+              await remove(ref(db, `Buildings/${bName}/Rooms/${newName}`));
+              Swal.fire(
+                "Error",
+                "Rename failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Rename failed and rollback unsuccessful.",
+                "error",
+              );
+            }
+          }
+        } catch (error) {
+Swal.fire(
+            "Error",
+            error.message || "Failed to rename room.",
+            "error",
+          );
+        } finally {
+          unlockOperation(lockKey);
+        }
+      };
+
+      window.deleteRoomNoFloor = async (bName, rName) => {
+        const res = await Swal.fire({
+          title: `Delete ${rName}?`,
+          showCancelButton: true,
+        });
+        if (!res.isConfirmed) return;
+
+        // Check if this is the last standalone room in the building
+        const roomsRef = ref(db, `Buildings/${bName}/Rooms`);
+        const roomsSnap = await get(roomsRef);
+        const rooms = roomsSnap.val() || {};
+        const roomKeys = Object.keys(rooms).filter(
+          (key) => key !== "placeholder" && key !== rName,
+        );
+
+        // Also check if building has floors
+        const floorsRef = ref(db, `Buildings/${bName}/Floors`);
+        const floorsSnap = await get(floorsRef);
+        const floors = floorsSnap.val() || {};
+        const floorKeys = Object.keys(floors).filter(
+          (key) => key !== "placeholder",
+        );
+
+        if (roomKeys.length === 0 && floorKeys.length === 0) {
+          // This is the last room/floor in building - ask if they want to keep it
+          const keepBuilding = await Swal.fire({
+            title: "Last Room in Building",
+            text: `This is the last room in ${bName}. Do you want to keep the building or delete it too?`,
+            icon: "question",
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: "Keep Building",
+            denyButtonText: "Delete Building",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            denyButtonColor: "#d93025",
+          });
+
+          if (keepBuilding.isDismissed) return; // User cancelled
+
+          await remove(ref(db, `Buildings/${bName}/Rooms/${rName}`));
+
+          if (keepBuilding.isConfirmed) {
+            // Keep building by adding placeholder
+            await set(ref(db, `Buildings/${bName}`), { placeholder: true });
+            Swal.fire(
+              "Deleted!",
+              "Room removed. Building preserved.",
+              "success",
+            );
+          } else if (keepBuilding.isDenied) {
+            // Delete the entire building
+            await remove(ref(db, `Buildings/${bName}`));
+            adminTrail.logBuildingAction("DELETE", bName, bName);
+            Swal.fire("Deleted!", "Room and building removed.", "success");
+          }
+        } else {
+          // Not the last room, just delete it
+          await remove(ref(db, `Buildings/${bName}/Rooms/${rName}`));
+          Swal.fire("Deleted!", "Room removed.", "success");
+        }
+
+        // Log standalone room deletion
+        adminTrail.logAction(
+          "DELETE",
+          "ROOM",
+          `${bName}-${rName}`,
+          { buildingName: bName, roomName: rName, type: "standalone" },
+          "HIGH",
+          "BUILDING_MANAGEMENT",
+        );
+};
     </script>
   </body>
 </html>

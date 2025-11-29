@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Management</title>
+    <link rel="stylesheet" href="/assets/css/style1.css" />
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
+    <script src="/includes/hamburger_menu.js"></script>
+    <script type="module" src="/includes/authguard.js"></script>
+    <script type="module" src="/includes/user.js"></script>
+    <script type="module" src="/includes/account_management.js" defer></script>
+  </head>
+  <body class="account-management-page admin-user">
+    <script>
+      (function () {
+        try {
+          document.documentElement.classList.add("admin-user");
+        } catch (_error) {}
+      })();
+    </script>
+    <div class="sidebar">
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a
+        href="/pages/account_management.html"
+        class="nav-item admin-only active"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a class="nav-item logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Account Management</h1>
+        <div class="profile"></div>
+      </div>
+
+      <div class="content account-management">
+        <section class="accounts-hero">
+          <div>
+            <h2>User Permissions</h2>
+            <p>
+              Grant or revoke administrative access across PCU Maps and create
+              new sign-in accounts for your team.
+            </p>
+          </div>
+          <div class="accounts-hero-actions">
+            <div class="accounts-legend" aria-label="Permissions legend">
+              <span class="legend-pill">
+                <span class="legend-dot legend-admin"></span> Admin
+              </span>
+              <span class="legend-pill">
+                <span class="legend-dot legend-user"></span> User
+              </span>
+            </div>
+            <button
+              type="button"
+              id="openAccountCreateModal"
+              class="btn account-create-trigger"
+            >
+              + Create Account
+            </button>
+          </div>
+        </section>
+
+        <section class="accounts-table-card">
+          <header class="accounts-table-header">
+            <h3>Active Accounts</h3>
+            <button id="refreshAccounts" class="btn accounts-refresh">
+              Refresh
+            </button>
+          </header>
+          <div id="accountsLoading" class="accounts-loading" role="status">
+            <span class="loader"></span>
+            <span>Loading users...</span>
+          </div>
+          <div class="accounts-table-wrapper" aria-live="polite">
+            <table class="accounts-table">
+              <thead>
+                <tr>
+                  <th scope="col">User</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Permissions</th>
+                  <th scope="col" class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody"></tbody>
+            </table>
+            <p id="accountsEmpty" class="accounts-empty" hidden>
+              No users found in the directory.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

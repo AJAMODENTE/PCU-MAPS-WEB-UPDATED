@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/assets/css/style1.css" />
     <script type="module" src="/includes/logout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
     <script src="/includes/hamburger_menu.js"></script>
     <script type="module" src="/includes/authguard.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -14,90 +15,194 @@
     <script type="module" src="/includes/user.js"></script>
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
     <div class="sidebar">
-
-      
-      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
-      <a href="/pages/manage_events.html" class="nav-item active">Manage Events</a>
-      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
-      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event</a
+      >
+      <a href="/pages/manage_events.html" class="nav-item active"
+        >Manage Events</a
+      >
       <a href="/relocation/location.html" class="nav-item">Buildings</a>
       <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
-      
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+
       <a class="nav-item logout" id="logout">Logout</a>
     </div>
 
     <div class="main">
       <div class="topbar">
         <h1>Manage Events</h1>
-        <div class="profile">
-        </div>
+        <div class="profile"></div>
       </div>
 
-<div class="content">
-  <div class="filter">
-    <h3>Filter Events</h3>
+      <div class="content">
+        <div class="filter">
+          <div class="view-controls">
+            <div class="view-toggle">
+              <button
+                class="view-btn active"
+                id="grid-view-btn"
+                title="Grid View"
+              >
+                ⊞
+              </button>
+              <button class="view-btn" id="list-view-btn" title="List View">
+                ☰
+              </button>
+            </div>
+            <select id="sort-select" class="sort-select">
+              <option value="date-asc">Date: Oldest First</option>
+              <option value="date-desc">Date: Newest First</option>
+              <option value="status-ongoing">Status: Ongoing First</option>
+              <option value="status-upcoming">Status: Upcoming First</option>
+              <option value="status-ended">Status: Ended First</option>
+              <option value="title-asc">Title: A-Z</option>
+              <option value="title-desc">Title: Z-A</option>
+            </select>
+          </div>
+          <h3>Filter Events</h3>
+          <input type="text" placeholder="Search Events..." id="search-input" />
+          <button id="toggle-filters" class="btn filter-toggle-btn">
+            Show Filters
+          </button>
 
-    <input type="text" placeholder="Search Events..." id="search-input" />
+          <div class="hidden-filters">
+            <select id="status-filter">
+              <option value="">Select Status</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Upcoming">Upcoming</option>
+              <option value="Ended">Ended</option>
+            </select>
 
-    <!-- Toggle Button for Filters (Mobile Only) -->
-    <button id="toggle-filters" class="btn filter-toggle-btn">
-      Show Filters
-    </button>
+            <h2>Select Location</h2>
+            <select id="building-select">
+              <option value="">Select Building</option>
+            </select>
 
-    <!-- Hidden filters that are toggled on mobile -->
-    <div class="hidden-filters">
-      <select id="status-filter">
-        <option value="">Select Status</option>
-        <option value="Ongoing">Ongoing</option>
-        <option value="Upcoming">Upcoming</option>
-        <option value="Ended">Ended</option>
-      </select>
+            <select id="floor-select">
+              <option value="">Select Floor</option>
+            </select>
 
-      <h2>Select Location</h2>
-      <select id="building-select">
-        <option value="">Select Building</option>
-      </select>
+            <select id="room-select">
+              <option value="">Select Room</option>
+            </select>
 
-      <select id="floor-select">
-        <option value="">Select Floor</option>
-      </select>
+            <button id="clear-filters" class="btn clear-btn">
+              Clear Filters
+            </button>
+          </div>
+        </div>
 
-      <select id="room-select">
-        <option value="">Select Room</option>
-      </select>
+        <div class="backdrop-filter">
+          <div id="event-list" class="grid-view"></div>
+        </div>
+      </div>
+    </div>
 
-      <button id="clear-filters" class="btn clear-btn">
-        Clear Filters
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions" id="bulk-actions">
+      <span class="bulk-actions-text"
+        ><span id="selected-count">0</span> selected</span
+      >
+      <button class="bulk-btn select-all" id="select-all-btn">
+        Select All
+      </button>
+      <button class="bulk-btn deselect-all" id="deselect-all-btn">
+        Deselect All
+      </button>
+      <button class="bulk-btn delete-selected" id="delete-selected-btn">
+        Delete Selected
       </button>
     </div>
-  </div>
 
-  <div class="backdrop-filter">
-    <div id="event-list"></div>
-  </div>
-</div>
-
-
-<script>
-  const toggleBtn = document.getElementById("toggle-filters");
-  const hiddenFilters = document.querySelector(".hidden-filters");
-
-  toggleBtn.addEventListener("click", () => {
-    hiddenFilters.classList.toggle("show");
-    toggleBtn.textContent = hiddenFilters.classList.contains("show")
-      ? "Hide Filters"
-      : "Show Filters";
-  });
-</script>
-
+    <div
+      id="event-detail-modal"
+      class="event-detail-modal"
+      aria-hidden="true"
+    >
+      <div class="event-detail-backdrop" role="presentation"></div>
+      <div
+        class="event-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="event-detail-title"
+        tabindex="-1"
+      >
+        <button
+          type="button"
+          class="event-detail-close"
+          aria-label="Close details"
+        >
+          &times;
+        </button>
+        <figure class="event-detail-image">
+          <img src="" alt="Event cover" loading="lazy" decoding="async" />
+        </figure>
+        <div class="event-detail-body">
+          <h2 id="event-detail-title" class="event-detail-title"></h2>
+          <div class="event-detail-status"></div>
+          <dl class="event-detail-meta">
+            <div>
+              <dt>Date</dt>
+              <dd class="event-detail-date"></dd>
+            </div>
+            <div>
+              <dt>Time</dt>
+              <dd class="event-detail-time"></dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd class="event-detail-location"></dd>
+            </div>
+          </dl>
+          <div class="event-detail-description"></div>
+        </div>
+        <div class="event-detail-actions">
+          <button type="button" class="btn edit event-detail-edit">
+            ✏️ Edit Event
+          </button>
+          <button type="button" class="btn delete event-detail-delete">
+            🗑️ Delete Event
+          </button>
+        </div>
+      </div>
     </div>
 
+    <script>
+      const toggleBtn = document.getElementById("toggle-filters");
+      const hiddenFilters = document.querySelector(".hidden-filters");
+
+      toggleBtn.addEventListener("click", () => {
+        hiddenFilters.classList.toggle("show");
+        toggleBtn.textContent = hiddenFilters.classList.contains("show")
+          ? "Hide Filters"
+          : "Show Filters";
+      });
+    </script>
+
     <script type="module">
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
+      import AdminTrail from "/includes/adminTrail.js";
       import {
         initializeApp,
         getApp,
-        getApps,
       } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
       import {
         getDatabase,
@@ -108,141 +213,767 @@
         remove,
         onValue,
       } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-      import {
-        getStorage,
-        ref as sRef,
-        uploadBytes,
-        getDownloadURL,
-      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-        authDomain: "pcu-maps-5d985.firebaseapp.com",
-        databaseURL:
-          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pcu-maps-5d985",
-        storageBucket: "pcu-maps-5d985.appspot.com",
-        messagingSenderId: "922913954447",
-        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
-      };
+      // Initialize Firebase safely (avoids duplicate initialization)
+      let app;
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+app = getApp();
+      }
 
-      const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
       const db = getDatabase(app);
-      const storage = getStorage(app);
-
+      const auth = getAuth(app);
+      const adminTrail = new AdminTrail(db, auth);
       const FALLBACK_IMAGE_URL = "/assets/images/pcu-building.png";
-
-      const title = document.getElementById("event-title");
-      const description = document.getElementById("event-description");
-      const date = document.getElementById("selected-date");
-      const startTime = document.getElementById("start-time");
-      const endTime = document.getElementById("end-time");
-      const imageInput = document.getElementById("image-input");
-      const uploadBtn = document.getElementById("upload-btn");
-      const deleteBtn = document.getElementById("delete-btn");
-      const previewBox = document.getElementById("preview-box");
-      const createBtn = document.getElementById("create-event-btn");
       const eventListDiv = document.getElementById("event-list");
+      const bulkActionsBar = document.getElementById("bulk-actions");
+      const selectedCountSpan = document.getElementById("selected-count");
+      const gridViewBtn = document.getElementById("grid-view-btn");
+      const listViewBtn = document.getElementById("list-view-btn");
+      const sortSelect = document.getElementById("sort-select");
+      const eventDetailModal = document.getElementById("event-detail-modal");
+      const modalBackdrop = eventDetailModal?.querySelector(
+        ".event-detail-backdrop",
+      );
+      const modalDialog = eventDetailModal?.querySelector(
+        ".event-detail-dialog",
+      );
+      const modalCloseBtn = eventDetailModal?.querySelector(
+        ".event-detail-close",
+      );
+      const modalTitleEl = eventDetailModal?.querySelector(
+        ".event-detail-title",
+      );
+      const modalStatusEl = eventDetailModal?.querySelector(
+        ".event-detail-status",
+      );
+      const modalDateEl = eventDetailModal?.querySelector(".event-detail-date");
+      const modalTimeEl = eventDetailModal?.querySelector(".event-detail-time");
+      const modalLocationEl = eventDetailModal?.querySelector(
+        ".event-detail-location",
+      );
+      const modalDescriptionEl = eventDetailModal?.querySelector(
+        ".event-detail-description",
+      );
+      const modalImageEl = eventDetailModal?.querySelector(
+        ".event-detail-image img",
+      );
+      const modalBodyEl = eventDetailModal?.querySelector(
+        ".event-detail-body",
+      );
+      const modalEditBtn = eventDetailModal?.querySelector(
+        ".event-detail-edit",
+      );
+      const modalDeleteBtn = eventDetailModal?.querySelector(
+        ".event-detail-delete",
+      );
+      let filterEmptyMessage = null;
+      let loadingIndicator = null;
+      let isFetchingEvents = false;
 
-      function fetchEvents() {
-        const eventListRef = ref(db, "events");
-        get(eventListRef).then((snapshot) => {
-          eventListDiv.innerHTML = "";
-          const events = snapshot.val();
-          if (!events) {
-            eventListDiv.innerHTML = `
-            <p style="text-align: center; color: black; font-size: 70px; text-align:center;">
-              NO EVENTS AVAILABLE<br>
-            </p>`;
-            return;
+      let selectedEvents = new Set();
+      let currentEvents = [];
+      let currentView = "grid";
+      let currentModalEventId = null;
+      const eventDetailsMap = new Map();
+
+      // View toggle functionality
+      gridViewBtn.addEventListener("click", () => {
+        currentView = "grid";
+        eventListDiv.classList.remove("list-view");
+        eventListDiv.classList.add("grid-view");
+        gridViewBtn.classList.add("active");
+        listViewBtn.classList.remove("active");
+        syncVisibleState();
+      });
+
+      listViewBtn.addEventListener("click", () => {
+        currentView = "list";
+        eventListDiv.classList.remove("grid-view");
+        eventListDiv.classList.add("list-view");
+        listViewBtn.classList.add("active");
+        gridViewBtn.classList.remove("active");
+        syncVisibleState();
+      });
+
+      // Sort functionality
+      sortSelect.addEventListener("change", () => {
+        sortAndRenderEvents();
+      });
+
+      function updateBulkActionsBar() {
+        selectedCountSpan.textContent = selectedEvents.size;
+        if (selectedEvents.size > 0) {
+          bulkActionsBar.classList.add("show");
+        } else {
+          bulkActionsBar.classList.remove("show");
+        }
+      }
+
+      function isItemVisible(item) {
+        return (
+          !item.classList.contains("is-hidden") &&
+          getComputedStyle(item).display !== "none"
+        );
+      }
+
+      function ensureFilterEmptyMessage() {
+        if (!filterEmptyMessage) {
+          filterEmptyMessage = document.createElement("div");
+          filterEmptyMessage.id = "filter-empty-message";
+          filterEmptyMessage.className = "filter-empty-message";
+          filterEmptyMessage.innerHTML = `
+            <div class="filter-empty-card">
+              <div class="filter-empty-icon">
+                <span class="filter-empty-icon-badge">🔍</span>
+              </div>
+              <h2>No matching events</h2>
+              <p>We couldn't find any events for the current filters. Try adjusting or clearing them.</p>
+              <div class="filter-empty-actions">
+                <button type="button" class="filter-empty-clear" id="filter-empty-clear">Clear Filters</button>
+              </div>
+            </div>
+          `;
+        }
+        if (!eventListDiv.contains(filterEmptyMessage)) {
+          eventListDiv.appendChild(filterEmptyMessage);
+        }
+      }
+
+      function showFilterEmptyMessage() {
+        ensureFilterEmptyMessage();
+        filterEmptyMessage.style.display = "flex";
+        const clearBtn = filterEmptyMessage.querySelector(
+          "#filter-empty-clear",
+        );
+        if (clearBtn) {
+          clearBtn.onclick = () => {
+            document.getElementById("search-input").value = "";
+            document.getElementById("status-filter").value = "";
+            buildingSelect.value = "";
+            floorSelect.innerHTML = `<option value="">Select Floor</option>`;
+            roomSelect.innerHTML = `<option value="">Select Room</option>`;
+            filterEvents();
+          };
+        }
+      }
+
+      function hideFilterEmptyMessage() {
+        if (filterEmptyMessage) {
+          filterEmptyMessage.style.display = "none";
+        }
+      }
+
+      function ensureLoadingIndicator() {
+        if (!loadingIndicator) {
+          loadingIndicator = document.createElement("div");
+          loadingIndicator.id = "event-loading";
+          loadingIndicator.className = "events-loading-message";
+          loadingIndicator.innerHTML = `
+            <div class="events-loading-spinner" aria-hidden="true"></div>
+            <p>Loading events...</p>
+          `;
+        }
+        return loadingIndicator;
+      }
+
+      function showLoadingIndicator() {
+        const indicator = ensureLoadingIndicator();
+        indicator.style.display = "flex";
+        eventListDiv.innerHTML = "";
+        eventListDiv.appendChild(indicator);
+      }
+
+      function hideLoadingIndicator() {
+        if (loadingIndicator && loadingIndicator.parentNode === eventListDiv) {
+          eventListDiv.removeChild(loadingIndicator);
+        }
+      }
+
+      function syncVisibleState() {
+        const items = Array.from(document.querySelectorAll(".event-item"));
+        items.forEach((item) => item.classList.remove("single-visible"));
+
+        const visibleItems = items.filter(isItemVisible);
+
+        items.forEach((item) => {
+          const checkbox = item.querySelector(".event-checkbox");
+          const card = item.querySelector(".card");
+          const eventId = checkbox?.dataset.eventId;
+          if (!checkbox || !eventId) return;
+
+          if (!visibleItems.includes(item)) {
+            checkbox.checked = false;
+            card?.classList.remove("selected");
+            selectedEvents.delete(eventId);
+          }
+        });
+
+        if (visibleItems.length === 1) {
+          visibleItems[0].classList.add("single-visible");
+        }
+
+        const showFullDescriptions =
+          visibleItems.length > 0 && visibleItems.length <= 2;
+
+        if (showFullDescriptions) {
+          eventListDiv.classList.add("few-visible");
+        } else {
+          eventListDiv.classList.remove("few-visible");
+        }
+
+        items.forEach((item) => {
+          const descriptionEl = item.querySelector(".description");
+          if (!descriptionEl) return;
+
+          const full = descriptionEl.dataset.full ?? descriptionEl.textContent;
+          const short = descriptionEl.dataset.short ?? full;
+
+          descriptionEl.textContent = showFullDescriptions ? full : short;
+        });
+
+        updateBulkActionsBar();
+      }
+
+      function getStatusPriority(status) {
+        const priorities = {
+          ongoing: 1,
+          upcoming: 2,
+          ended: 3,
+        };
+        return priorities[status] || 999;
+      }
+
+      function normalizeDateString(dateStr) {
+        if (!dateStr) return null;
+        const trimmed = dateStr.trim();
+        if (!trimmed) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+          return trimmed;
+        }
+
+        const parsed = new Date(trimmed);
+        if (Number.isNaN(parsed.getTime())) {
+          return null;
+        }
+
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function getComparableDate(event) {
+        const normalized = normalizeDateString(event?.selected_date);
+        if (!normalized) return null;
+        const timestamp = Date.parse(`${normalized}T00:00:00`);
+        return Number.isNaN(timestamp) ? null : timestamp;
+      }
+
+      function compareByDate(aEvent, bEvent, direction = 1) {
+        const aValue = getComparableDate(aEvent);
+        const bValue = getComparableDate(bEvent);
+
+        if (aValue === null && bValue === null) return 0;
+        if (aValue === null) return 1;
+        if (bValue === null) return -1;
+
+        const diff = aValue - bValue;
+        if (diff === 0) return 0;
+        return direction * (diff > 0 ? 1 : -1);
+      }
+
+      function compareByTitle(aTuple, bTuple, direction = 1) {
+        const titleA = aTuple[1]?.event_title || "";
+        const titleB = bTuple[1]?.event_title || "";
+        const diff = titleA.localeCompare(titleB, undefined, {
+          sensitivity: "base",
+        });
+        if (diff !== 0) return direction * diff;
+        return aTuple[0].localeCompare(bTuple[0]);
+      }
+
+      function compareByStatus(aTuple, bTuple) {
+        const statusA = getEventStatus(aTuple[1]);
+        const statusB = getEventStatus(bTuple[1]);
+        const priorityDiff =
+          getStatusPriority(statusA) - getStatusPriority(statusB);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const dateDiff = compareByDate(aTuple[1], bTuple[1], 1);
+        if (dateDiff !== 0) return dateDiff;
+
+        return compareByTitle(aTuple, bTuple, 1);
+      }
+
+      function formatTimeValue(timeString) {
+        if (!timeString || typeof timeString !== "string") {
+          return "";
+        }
+
+        const parts = timeString.split(":");
+        if (parts.length < 2) {
+          return timeString;
+        }
+
+        const hour = Number(parts[0]);
+        const minute = Number(parts[1]);
+
+        if (Number.isNaN(hour) || Number.isNaN(minute)) {
+          return timeString;
+        }
+
+        const normalizedHour = ((hour + 11) % 12) + 1;
+        const suffix = hour >= 12 ? "PM" : "AM";
+        const paddedMinute = String(minute).padStart(2, "0");
+
+        return `${normalizedHour}:${paddedMinute} ${suffix}`;
+      }
+
+      function formatTimeRange(startTime, endTime) {
+        const formattedStart = formatTimeValue(startTime);
+        const formattedEnd = formatTimeValue(endTime);
+
+        if (formattedStart && formattedEnd) {
+          return `${formattedStart} - ${formattedEnd}`;
+        }
+
+        return formattedStart || formattedEnd || "";
+      }
+
+      function sortEvents(events, sortType) {
+        const sorted = [...events];
+
+        switch (sortType) {
+          case "date-asc":
+            sorted.sort((a, b) => {
+              const diff = compareByDate(a[1], b[1], 1);
+              if (diff !== 0) return diff;
+              return compareByTitle(a, b, 1);
+            });
+            break;
+          case "date-desc":
+            sorted.sort((a, b) => {
+              const diff = compareByDate(a[1], b[1], -1);
+              if (diff !== 0) return diff;
+              return compareByTitle(a, b, 1);
+            });
+            break;
+          case "status-ongoing":
+            sorted.sort(compareByStatus);
+            break;
+          case "status-upcoming":
+            sorted.sort((a, b) => {
+              const statusA = getEventStatus(a[1]);
+              const statusB = getEventStatus(b[1]);
+              const prioA =
+                statusA === "upcoming" ? 1 : statusA === "ongoing" ? 2 : 3;
+              const prioB =
+                statusB === "upcoming" ? 1 : statusB === "ongoing" ? 2 : 3;
+              if (prioA !== prioB) return prioA - prioB;
+              const dateDiff = compareByDate(a[1], b[1], 1);
+              if (dateDiff !== 0) return dateDiff;
+              return compareByTitle(a, b, 1);
+            });
+            break;
+          case "status-ended":
+            sorted.sort((a, b) => {
+              const statusA = getEventStatus(a[1]);
+              const statusB = getEventStatus(b[1]);
+              const prioA =
+                statusA === "ended" ? 1 : statusA === "ongoing" ? 2 : 3;
+              const prioB =
+                statusB === "ended" ? 1 : statusB === "ongoing" ? 2 : 3;
+              if (prioA !== prioB) return prioA - prioB;
+              const dateDiff = compareByDate(a[1], b[1], -1);
+              if (dateDiff !== 0) return dateDiff;
+              return compareByTitle(a, b, 1);
+            });
+            break;
+          case "title-asc":
+            sorted.sort((a, b) => compareByTitle(a, b, 1));
+            break;
+          case "title-desc":
+            sorted.sort((a, b) => compareByTitle(a, b, -1));
+            break;
+        }
+
+        return sorted;
+      }
+
+      function getEventStatus(event) {
+        const now = new Date();
+        const [startHour, startMin] = event.start_time.split(":").map(Number);
+        const [endHour, endMin] = event.end_time.split(":").map(Number);
+
+        const startDateTime = new Date(event.selected_date);
+        startDateTime.setHours(startHour, startMin, 0, 0);
+
+        const endDateTime = new Date(event.selected_date);
+        endDateTime.setHours(endHour, endMin, 0, 0);
+
+        if (now > endDateTime) {
+          return "ended";
+        } else if (now >= startDateTime && now <= endDateTime) {
+          return "ongoing";
+        } else {
+          return "upcoming";
+        }
+      }
+
+      function closeEventDetail() {
+        if (!eventDetailModal) return;
+        modalDialog?.scrollTo({ top: 0, behavior: "auto" });
+        modalBodyEl?.scrollTo({ top: 0, behavior: "auto" });
+        eventDetailModal.classList.remove("is-visible");
+        eventDetailModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+        currentModalEventId = null;
+      }
+
+      function openEventDetail(eventId) {
+        if (!eventDetailModal) return;
+        const event = eventDetailsMap.get(eventId);
+        if (!event) return;
+
+        currentModalEventId = eventId;
+
+        if (modalTitleEl) {
+          modalTitleEl.textContent = event.event_title || "Untitled Event";
+        }
+
+        if (modalImageEl) {
+          modalImageEl.src = event.image_url || FALLBACK_IMAGE_URL;
+          modalImageEl.alt = event.event_title
+            ? `${event.event_title} cover`
+            : "Event cover";
+        }
+
+        const status = getEventStatus(event);
+        const statusLabels = {
+          ongoing: "Live Now",
+          upcoming: "Upcoming",
+          ended: "Ended",
+        };
+
+        if (modalStatusEl) {
+          modalStatusEl.textContent = statusLabels[status] || "Scheduled";
+          modalStatusEl.className = `event-detail-status ${status}`;
+        }
+
+        if (modalDateEl) {
+          modalDateEl.textContent = event.selected_date || "Not set";
+        }
+
+        if (modalTimeEl) {
+          const formattedRange = formatTimeRange(
+            event.start_time,
+            event.end_time,
+          );
+          modalTimeEl.textContent = formattedRange || "Not set";
+        }
+
+        if (modalLocationEl) {
+          modalLocationEl.textContent = event.location || "Not set";
+        }
+
+        if (modalDescriptionEl) {
+          const description = (event.event_description || "").trim();
+          modalDescriptionEl.textContent =
+            description.length > 0 ? description : "No description provided.";
+        }
+
+        if (modalEditBtn) {
+          modalEditBtn.onclick = (evt) => {
+            evt.preventDefault();
+            window.location.href = `/pages/edit_events.html?eventId=${encodeURIComponent(
+              eventId,
+            )}`;
+          };
+        }
+
+        if (modalDeleteBtn) {
+          modalDeleteBtn.onclick = (evt) => {
+            evt.preventDefault();
+            closeEventDetail();
+            deleteEvent(eventId);
+          };
+        }
+
+        if (modalDialog) {
+          modalDialog.scrollTop = 0;
+        }
+
+        if (modalBodyEl) {
+          modalBodyEl.scrollTop = 0;
+        }
+
+        if (modalDialog) {
+          modalDialog.focus();
+        }
+
+        eventDetailModal.classList.add("is-visible");
+        eventDetailModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+      }
+
+      modalCloseBtn?.addEventListener("click", (evt) => {
+        evt.preventDefault();
+        closeEventDetail();
+      });
+
+      modalBackdrop?.addEventListener("click", closeEventDetail);
+
+      eventDetailModal?.addEventListener("click", (evt) => {
+        if (evt.target === eventDetailModal) {
+          closeEventDetail();
+        }
+      });
+
+      document.addEventListener("keydown", (evt) => {
+        if (evt.key === "Escape" && eventDetailModal?.classList.contains("is-visible")) {
+          closeEventDetail();
+        }
+      });
+
+      function sortAndRenderEvents() {
+        if (isFetchingEvents) {
+          return;
+        }
+        const sortType = sortSelect.value;
+        const sorted = sortEvents(currentEvents, sortType);
+        renderEvents(sorted);
+      }
+
+      function renderEvents(events) {
+        hideLoadingIndicator();
+        eventListDiv.innerHTML = "";
+        filterEmptyMessage = null;
+        selectedEvents.clear();
+        eventListDiv.classList.remove("selection-active");
+        updateBulkActionsBar();
+        eventDetailsMap.clear();
+        closeEventDetail();
+
+        if (!events || events.length === 0) {
+          eventListDiv.innerHTML = `
+          <div class="no-events-container">
+            <div class="empty-icon">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path d="M32 8L56 24V56H8V24L32 8Z" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="32" cy="40" r="6" fill="#3b82f6"/>
+              </svg>
+            </div>
+            <h2 class="no-events-title">No Events Available</h2>
+            <p class="no-events-subtitle">It looks like there are no events yet. You can add one now to get started.</p>
+            <button class="no-events-btn" onclick="window.location.href='/pages/create_events.html'">+ Create New Event</button>
+          </div>`;
+          return;
+        }
+
+        events.forEach(([eventId, event]) => {
+          const div = document.createElement("div");
+          div.className = "event-item";
+          div.setAttribute("data-event-id", eventId);
+          div.setAttribute("data-location", event.location || "");
+
+          const [buildingName, floorLabel, roomLabel] = (event.location || "")
+            .split(" - ")
+            .map((s) => s.trim());
+
+          div.setAttribute("data-building-id", buildingName || "");
+          div.setAttribute("data-floor-id", floorLabel || "");
+          div.setAttribute("data-room-id", roomLabel || "");
+
+          const status = getEventStatus(event);
+          let statusHTML = "";
+
+          if (status === "ended") {
+            statusHTML = '<div class="event-ended">Ended</div>';
+          } else if (status === "ongoing") {
+            statusHTML = '<div class="event-ongoing">Live Now</div>';
+          } else {
+            statusHTML = '<div class="event-upcoming">Upcoming</div>';
           }
 
-          const today = new Date().toISOString().split("T")[0];
-          const sortedEvents = Object.entries(events).sort(
-            (a, b) =>
-              new Date(a[1].selected_date) - new Date(b[1].selected_date)
+          div.setAttribute("data-status", status);
+
+          div.addEventListener("dragstart", (event) => {
+            event.preventDefault();
+          });
+
+          const descriptionRaw = event.event_description || "";
+          const truncatedDescription =
+            descriptionRaw.length > 100
+              ? descriptionRaw.substring(0, 100) + "..."
+              : descriptionRaw;
+
+          const formattedTimeRange = formatTimeRange(
+            event.start_time,
+            event.end_time,
+          );
+          const rawTimeRange = [event.start_time, event.end_time]
+            .filter(Boolean)
+            .join(" - ");
+          const timeSearchValue = [rawTimeRange, formattedTimeRange]
+            .filter(Boolean)
+            .join(" | ");
+
+          div.setAttribute(
+            "data-description",
+            descriptionRaw.replace(/"/g, "&quot;"),
+          );
+          div.setAttribute("data-title", event.event_title || "");
+          div.setAttribute("data-date", event.selected_date || "");
+          div.setAttribute(
+            "data-time",
+            timeSearchValue,
           );
 
-          sortedEvents.forEach(([eventId, event]) => {
-            const div = document.createElement("div");
-            div.className = "event-item";
-            div.setAttribute("data-location", event.location || "");
+          div.innerHTML = `
+            <article class="card" data-event-id="${eventId}">
+              <input type="checkbox" class="event-checkbox" data-event-id="${eventId}" />
+              ${statusHTML}
+                <figure class="card-image">
+                    <img src="${event.image_url || FALLBACK_IMAGE_URL}" alt="${event.event_title}" loading="lazy" decoding="async" draggable="false">
+                </figure>
 
-            const [buildingName, floorLabel, roomLabel] = (event.location || "")
-              .split(" - ")
-              .map((s) => s.trim());
+              <div class="card-content">
 
-            div.setAttribute("data-building-id", buildingName || "");
-            div.setAttribute("data-floor-id", floorLabel || "");
-            div.setAttribute("data-room-id", roomLabel || "");
+                <header class="card-header mobile-event-header" data-event-id="${eventId}">
+                  <div class="mobile-title-wrapper">
+                    <h2>${event.event_title}</h2>
+                    <span class="mobile-event-chevron">▼</span>
+                  </div>
+                  <div class="mobile-collapsible-content">
+                    <p class="date-time">
+                      <span>📅 ${event.selected_date}</span>
+                      <span>🕒 ${formattedTimeRange || "Not set"}</span>
+                    </p>
+                    <p class="meta">📍 ${event.location}</p>
+                  </div>
+                </header>
+                <p class="description mobile-collapsible-content"></p>
 
-            const now = new Date();
-            const eventDate = new Date(event.selected_date);
-            const [startHour, startMin] = event.start_time
-              .split(":")
-              .map(Number);
-            const [endHour, endMin] = event.end_time.split(":").map(Number);
+                <footer class="card-footer mobile-collapsible-content">
+                  <button class="btn edit" type="button" data-event-id="${eventId}">
+                    ✏️ Edit
+                  </button>
+                  <button class="btn delete" type="button" data-event-id="${eventId}">
+                    🗑️ Delete
+                  </button>
+                </footer>
 
-            const startDateTime = new Date(event.selected_date);
-            startDateTime.setHours(startHour, startMin, 0, 0);
+              </div>
+            </article>
+          `;
 
-            const endDateTime = new Date(event.selected_date);
-            endDateTime.setHours(endHour, endMin, 0, 0);
+          eventDetailsMap.set(eventId, event);
 
-            let statusHTML = "";
-            let status = "";
+          const cardElement = div.querySelector(".card");
+          if (cardElement) {
+            cardElement.setAttribute("draggable", "false");
+            cardElement.addEventListener("dragstart", (event) => {
+              event.preventDefault();
+            });
+          }
 
-            if (now > endDateTime) {
-              statusHTML = '<div class="event-ended">Event Ended</div>';
-              status = "ended";
-            } else if (now >= startDateTime && now <= endDateTime) {
-              statusHTML = '<div class="event-ongoing">Ongoing Event</div>';
-              status = "ongoing";
+          eventListDiv.appendChild(div);
+
+          // Add checkbox event listener
+          const checkbox = div.querySelector(".event-checkbox");
+          const card = div.querySelector(".card");
+          const descriptionEl = card.querySelector(".description");
+
+          if (descriptionEl) {
+            descriptionEl.dataset.full = descriptionRaw;
+            descriptionEl.dataset.short = truncatedDescription;
+            descriptionEl.textContent = truncatedDescription;
+          }
+
+          const editBtn = card.querySelector(".btn.edit");
+          const deleteBtn = card.querySelector(".btn.delete");
+
+          if (editBtn) {
+            editBtn.addEventListener("click", (evt) => {
+              evt.preventDefault();
+              evt.stopPropagation();
+              window.location.href = `/pages/edit_events.html?eventId=${encodeURIComponent(
+                eventId,
+              )}`;
+            });
+          }
+
+          if (deleteBtn) {
+            deleteBtn.addEventListener("click", (evt) => {
+              evt.preventDefault();
+              evt.stopPropagation();
+              deleteEvent(eventId);
+            });
+          }
+
+          checkbox.addEventListener("change", (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) {
+              selectedEvents.add(eventId);
+              card.classList.add("selected");
+              // Enable selection mode to show all checkboxes
+              eventListDiv.classList.add("selection-active");
             } else {
-              statusHTML = '<div class="event-upcoming">Upcoming Event</div>';
-              status = "upcoming";
+              selectedEvents.delete(eventId);
+              card.classList.remove("selected");
+              // Disable selection mode if no items are selected
+              if (selectedEvents.size === 0) {
+                eventListDiv.classList.remove("selection-active");
+              }
+            }
+            updateBulkActionsBar();
+          });
+
+          checkbox.addEventListener("click", (e) => e.stopPropagation());
+
+          card.addEventListener("click", (evt) => {
+            if (
+              evt.target.closest(".event-checkbox") ||
+              evt.target.closest(".btn")
+            ) {
+              return;
             }
 
-            div.setAttribute("data-status", status);
+            if (
+              window.innerWidth <= 768 &&
+              eventListDiv.classList.contains("list-view")
+            ) {
+              card.classList.toggle("mobile-expanded");
+              return;
+            }
 
-            const truncatedDescription =
-              event.event_description.length > 50
-                ? event.event_description.substring(0, 50) + "..."
-                : event.event_description;
-
-            div.setAttribute(
-              "data-description",
-              event.event_description.replace(/"/g, "&quot;")
-            );
-
-                div.innerHTML = ` 
-          <article class="card">
-            ${statusHTML}
-            <figure class="card-image">
-              <img src="${event.image_url || FALLBACK_IMAGE_URL}" alt="${
-                  event.event_title
-                }">
-            </figure>
-            <div class="card-content">
-              <header class="card-header">
-                <h2>${event.event_title}</h2>
-                <p class="date-time">📅 ${event.selected_date} · 🕒 ${
-                  event.start_time
-                } - ${event.end_time}</p>
-                <p class="meta"><strong>📍</strong> ${event.location}</p>
-              </header>
-              <p class="description">${truncatedDescription}</p>
-              <footer class="card-footer">
-                <button class="btn edit" onclick="window.location.href='/pages/edit_events.html?eventId=${eventId}'">Edit</button>
-                <button class="btn delete" onclick="deleteEvent('${eventId}')">Delete</button>
-              </footer>
-            </div>
-          </article>
-        `;
-
-            eventListDiv.appendChild(div);
+            openEventDetail(eventId);
           });
         });
+
+        syncVisibleState();
+        hideFilterEmptyMessage();
+      }
+
+      function fetchEvents() {
+        isFetchingEvents = true;
+        showLoadingIndicator();
+        const eventListRef = ref(db, "events");
+        get(eventListRef)
+          .then((snapshot) => {
+            const events = snapshot.val();
+            currentEvents = events ? Object.entries(events) : [];
+          })
+          .catch((error) => {
+currentEvents = [];
+          })
+          .finally(() => {
+            isFetchingEvents = false;
+            sortAndRenderEvents();
+          });
       }
 
       function deleteEvent(eventId) {
@@ -251,26 +982,121 @@
           text: "This event will be permanently deleted.",
           icon: "warning",
           showCancelButton: true,
-          confirmButtonColor: "#d33",
-          cancelButtonColor: "#3085d6",
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#6b7280",
           confirmButtonText: "Yes, delete it!",
         }).then((result) => {
           if (result.isConfirmed) {
             const eventRef = ref(db, "events/" + eventId);
-            remove(eventRef)
-              .then(() => {
-                Swal.fire("Deleted!", "The event has been deleted.", "success");
-                fetchEvents(); // Refresh the list
-              })
-              .catch((error) => {
-                Swal.fire("Error!", "Failed to delete the event.", "error");
-                console.error("Delete failed:", error);
-              });
+            // Get event data before deleting for logging
+            get(eventRef).then((snapshot) => {
+              const eventData = snapshot.val();
+              remove(eventRef)
+                .then(() => {
+                  // Log event deletion to admin trail
+                  adminTrail.logEventDelete(eventId, eventData);
+Swal.fire(
+                    "Deleted!",
+                    "The event has been deleted.",
+                    "success",
+                  );
+                  fetchEvents();
+                })
+                .catch((error) => {
+                  Swal.fire("Error!", "Failed to delete the event.", "error");
+});
+            });
           }
         });
       }
 
+      // Bulk delete functionality
+      document
+        .getElementById("delete-selected-btn")
+        .addEventListener("click", () => {
+          if (selectedEvents.size === 0) return;
+
+          Swal.fire({
+            title: "Delete Multiple Events?",
+            text: `You are about to delete ${selectedEvents.size} event(s). This action cannot be undone.`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Yes, delete them!",
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              const deletePromises = Array.from(selectedEvents).map(
+                (eventId) => {
+                  return get(ref(db, "events/" + eventId)).then((snapshot) => {
+                    const eventData = snapshot.val();
+                    return remove(ref(db, "events/" + eventId)).then(() => {
+                      // Log each deletion to admin trail
+                      adminTrail.logEventDelete(eventId, eventData);
+                    });
+                  });
+                },
+              );
+
+              try {
+                await Promise.all(deletePromises);
+Swal.fire(
+                  "Deleted!",
+                  `${selectedEvents.size} event(s) have been deleted.`,
+                  "success",
+                );
+                fetchEvents();
+              } catch (error) {
+                Swal.fire("Error!", "Failed to delete some events.", "error");
+}
+            }
+          });
+        });
+
+      // Select all functionality
+      document
+        .getElementById("select-all-btn")
+        .addEventListener("click", () => {
+          document.querySelectorAll(".event-item").forEach((item) => {
+            const checkbox = item.querySelector(".event-checkbox");
+            const card = item.querySelector(".card");
+            const eventId = checkbox?.dataset.eventId;
+            if (!checkbox || !eventId) return;
+
+            if (isItemVisible(item)) {
+              checkbox.checked = true;
+              card?.classList.add("selected");
+              selectedEvents.add(eventId);
+            } else {
+              checkbox.checked = false;
+              card?.classList.remove("selected");
+              selectedEvents.delete(eventId);
+            }
+          });
+          // Enable selection mode when selecting all
+          if (selectedEvents.size > 0) {
+            eventListDiv.classList.add("selection-active");
+          }
+          updateBulkActionsBar();
+        });
+
+      // Deselect all functionality
+      document
+        .getElementById("deselect-all-btn")
+        .addEventListener("click", () => {
+          document.querySelectorAll(".event-checkbox").forEach((checkbox) => {
+            checkbox.checked = false;
+            checkbox.closest(".card").classList.remove("selected");
+          });
+          selectedEvents.clear();
+          eventListDiv.classList.remove("selection-active");
+          updateBulkActionsBar();
+        });
+
       function filterEvents() {
+        if (isFetchingEvents) {
+          return;
+        }
         const searchInput = document
           .getElementById("search-input")
           .value.toLowerCase();
@@ -278,7 +1104,6 @@
           .getElementById("status-filter")
           .value.toLowerCase();
 
-        // Use dataset values for filtering (display name/label)
         const buildingName =
           buildingSelect.options[buildingSelect.selectedIndex]?.dataset.name ||
           "";
@@ -289,8 +1114,20 @@
         const items = document.querySelectorAll(".event-item");
 
         items.forEach((item) => {
+          // Search across multiple fields: title, description, location, date, and time
+          const title = item.dataset.title?.toLowerCase() || "";
           const description = item.dataset.description?.toLowerCase() || "";
-          const matchesSearch = description.includes(searchInput);
+          const location = item.dataset.location?.toLowerCase() || "";
+          const date = item.dataset.date?.toLowerCase() || "";
+          const time = item.dataset.time?.toLowerCase() || "";
+
+          const matchesSearch =
+            !searchInput ||
+            title.includes(searchInput) ||
+            description.includes(searchInput) ||
+            location.includes(searchInput) ||
+            date.includes(searchInput) ||
+            time.includes(searchInput);
 
           const matchesBuilding =
             buildingName === "" || item.dataset.buildingId === buildingName;
@@ -309,14 +1146,26 @@
             matchesRoom &&
             matchesStatus
           ) {
-            item.style.display = "block";
+            item.classList.remove("is-hidden");
+            item.style.display = "";
           } else {
+            item.classList.add("is-hidden");
             item.style.display = "none";
           }
         });
+
+        syncVisibleState();
+
+        const visibleItems = Array.from(
+          document.querySelectorAll(".event-item"),
+        ).filter(isItemVisible);
+        if (visibleItems.length === 0 && items.length > 0) {
+          showFilterEmptyMessage();
+        } else {
+          hideFilterEmptyMessage();
+        }
       }
 
-      // Attach event listeners
       document
         .getElementById("search-input")
         .addEventListener("input", filterEvents);
@@ -333,29 +1182,28 @@
         .getElementById("status-filter")
         .addEventListener("change", filterEvents);
 
-      // Use 'db' instead of 'database'
       const buildingSelect = document.getElementById("building-select");
       const floorSelect = document.getElementById("floor-select");
       const roomSelect = document.getElementById("room-select");
 
-      // Load buildings on page load
       function loadBuildings() {
-        const buildingsRef = ref(db, "buildings");
+        const buildingsRef = ref(db, "Buildings");
         onValue(buildingsRef, (snapshot) => {
           buildingSelect.innerHTML = `<option value="">Select Building</option>`;
           snapshot.forEach((buildingSnap) => {
             const buildingId = buildingSnap.key;
-            const buildingName = buildingSnap.val().name;
+            const buildingData = buildingSnap.val();
+            const buildingName =
+              buildingData.buildingName || buildingData.name || buildingId;
             const option = document.createElement("option");
-            option.value = buildingId; // Use key for querying
-            option.textContent = buildingName; // Show name
-            option.dataset.name = buildingName; // Store name for filtering
+            option.value = buildingId;
+            option.textContent = buildingName;
+            option.dataset.name = buildingName;
             buildingSelect.appendChild(option);
           });
         });
       }
 
-      // Load floors when a building is selected
       buildingSelect.addEventListener("change", () => {
         const selectedBuildingId = buildingSelect.value;
         floorSelect.innerHTML = `<option value="">Select Floor</option>`;
@@ -363,22 +1211,21 @@
 
         if (!selectedBuildingId) return;
 
-        const floorsRef = ref(db, `buildings/${selectedBuildingId}/floors`);
+        const floorsRef = ref(db, `Buildings/${selectedBuildingId}/Floors`);
         onValue(floorsRef, (snapshot) => {
           snapshot.forEach((floorSnap) => {
             const floorId = floorSnap.key;
             const floorData = floorSnap.val();
-            const label = `Floor ${floorData.floorNumber}`;
+            const label = `Floor ${floorData.floorNumber || floorData.floor || floorId}`;
             const option = document.createElement("option");
-            option.value = floorId; // Use key for querying
-            option.textContent = label; // Show label
-            option.dataset.label = label; // Store label for filtering
+            option.value = floorId;
+            option.textContent = label;
+            option.dataset.label = label;
             floorSelect.appendChild(option);
           });
         });
       });
 
-      // Load rooms when a floor is selected
       floorSelect.addEventListener("change", () => {
         const selectedBuildingId = buildingSelect.value;
         const selectedFloorId = floorSelect.value;
@@ -388,7 +1235,7 @@
 
         const roomsRef = ref(
           db,
-          `buildings/${selectedBuildingId}/floors/${selectedFloorId}/rooms`
+          `Buildings/${selectedBuildingId}/Floors/${selectedFloorId}/Rooms`,
         );
         onValue(roomsRef, (snapshot) => {
           snapshot.forEach((roomSnap) => {
@@ -407,15 +1254,14 @@
         buildingSelect.value = "";
         floorSelect.innerHTML = `<option value="">Select Floor</option>`;
         roomSelect.innerHTML = `<option value="">Select Room</option>`;
-
-        filterEvents(); // Re-apply filter logic with cleared inputs
+        filterEvents();
       });
 
       window.deleteEvent = deleteEvent;
-      // Initialize on load
+
       window.onload = () => {
-        fetchEvents(); // Your existing logic for event fetching
-        loadBuildings(); // Now load the buildings dropdown
+        fetchEvents();
+        loadBuildings();
       };
     </script>
   </body>

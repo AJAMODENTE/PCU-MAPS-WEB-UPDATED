@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/assets/css/style3.css" />
     <script type="module" src="/includes/logout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
     <script src="/includes/hamburger_menu.js"></script>
     <script type="module" src="/includes/authguard.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -14,27 +15,58 @@
     <script type="module" src="/includes/user.js"></script>
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
     <div class="sidebar">
-      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
-      <a href="/pages/manage_events.html" class="nav-item"
-        >Manage Events</a
-      >
-      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
-      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
       <a href="/relocation/location.html" class="nav-item">Buildings</a>
       <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+
       <a class="nav-item logout" id="logout">Logout</a>
     </div>
 
     <div class="main">
       <div class="topbar">
         <h1>Edit Events</h1>
-        <div class="profile">
-        </div>
+        <div class="profile"></div>
       </div>
 
       <div class="content">
         <div class="event-form">
+          <div
+            class="events-loading-overlay"
+            id="event-loading-overlay"
+            aria-busy="true"
+          >
+            <div
+              class="events-loading-message"
+              role="status"
+              aria-live="polite"
+            >
+              <div class="events-loading-spinner" aria-hidden="true"></div>
+              <p>Loading event…</p>
+            </div>
+          </div>
           <div class="form-body">
             <div class="left-panel">
               <div class="image-placeholder">
@@ -44,29 +76,60 @@
                   id="image-input"
                   accept="image/*"
                   style="display: none"
+                  aria-label="Upload event image"
                 />
                 <div class="image-buttons">
-                  <button class="upload-btn" id="upload-btn">
+                  <button class="upload-btn" id="upload-btn" type="button">
                     Upload Image
                   </button>
-                  <button class="delete-btn" id="delete-btn">
+                  <button class="delete-btn" id="delete-btn" type="button">
                     Delete Image
                   </button>
                 </div>
               </div>
 
-              <label>Select location</label>
-              <select id="building-select">
+              <label for="building-select">Select Building</label>
+              <select
+                id="building-select"
+                aria-describedby="building-select-error"
+              >
                 <option value="">Select Building</option>
               </select>
+              <div
+                class="field-error"
+                id="building-select-error"
+                aria-live="polite"
+              ></div>
 
-              <select id="floor-select">
+              <label for="floor-select" style="display: none"
+                >Select Floor</label
+              >
+              <select
+                id="floor-select"
+                style="display: none"
+                aria-describedby="floor-select-error"
+              >
                 <option value="">Select Floor</option>
               </select>
+              <div
+                class="field-error"
+                id="floor-select-error"
+                aria-live="polite"
+              ></div>
 
-              <select id="room-select">
+              <label for="room-select" style="display: none">Select Room</label>
+              <select
+                id="room-select"
+                style="display: none"
+                aria-describedby="room-select-error"
+              >
                 <option value="">Select Room</option>
               </select>
+              <div
+                class="field-error"
+                id="room-select-error"
+                aria-live="polite"
+              ></div>
             </div>
 
             <div class="right-panel">
@@ -75,26 +138,71 @@
                 type="text"
                 id="event-title"
                 placeholder="Enter event title"
+                aria-describedby="event-title-error"
               />
+              <div
+                class="field-error"
+                id="event-title-error"
+                aria-live="polite"
+              ></div>
 
               <label for="event-description">Event Description</label>
               <textarea
                 id="event-description"
                 placeholder="Enter Event Description"
+                aria-describedby="event-description-error"
               ></textarea>
+              <div
+                class="field-error"
+                id="event-description-error"
+                aria-live="polite"
+              ></div>
 
               <label for="selected-date">Select Date</label>
-              <input type="date" id="selected-date" name="selected-date" />
+              <input
+                type="date"
+                id="selected-date"
+                name="selected-date"
+                aria-describedby="selected-date-error"
+              />
+              <div
+                class="field-error"
+                id="selected-date-error"
+                aria-live="polite"
+              ></div>
 
               <div class="time-picker">
                 <label for="start-time">Start Time:</label>
-                <input id="start-time" type="time" /><br />
+                <input
+                  id="start-time"
+                  type="time"
+                  aria-describedby="start-time-error"
+                /><br />
+                <div
+                  class="field-error"
+                  id="start-time-error"
+                  aria-live="polite"
+                ></div>
                 <label for="end-time">End Time:</label>
-                <input id="end-time" type="time" /><br />
+                <input
+                  id="end-time"
+                  type="time"
+                  aria-describedby="end-time-error"
+                /><br />
+                <div
+                  class="field-error"
+                  id="end-time-error"
+                  aria-live="polite"
+                ></div>
               </div>
 
-              <button class="edit-event-btn" id="edit-event-btn">
-                Update Event
+              <button
+                class="edit-event-btn"
+                id="edit-event-btn"
+                type="button"
+                disabled
+              >
+                Loading...
               </button>
             </div>
           </div>
@@ -103,6 +211,8 @@
     </div>
 
     <script type="module">
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
+      import AdminTrail from "/includes/adminTrail.js";
       import {
         initializeApp,
         getApp,
@@ -113,39 +223,35 @@
         get,
         update,
       } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
       import {
         getStorage,
         ref as sRef,
+        uploadBytes,
+        getDownloadURL,
       } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-        authDomain: "pcu-maps-5d985.firebaseapp.com",
-        databaseURL:
-          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pcu-maps-5d985",
-        storageBucket: "pcu-maps-5d985.appspot.com",
-        messagingSenderId: "922913954447",
-        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
-      };
-
+      // Initialize Firebase safely (avoids duplicate initialization)
       let app;
       try {
         app = initializeApp(firebaseConfig);
       } catch (error) {
-        console.log("Firebase already initialized:", error);
-        app = getApp();
+app = getApp();
       }
 
       const db = getDatabase(app);
+      const auth = getAuth(app);
       const storage = getStorage(app);
-      const urlParams = new URLSearchParams(window.location.search);
+      const adminTrail = new AdminTrail(db, auth);
+const urlParams = new URLSearchParams(window.location.search);
       const eventId = urlParams.get("eventId");
 
-      // DOM elements
       const buildingSelect = document.getElementById("building-select");
       const floorSelect = document.getElementById("floor-select");
       const roomSelect = document.getElementById("room-select");
+      const floorLabel = document.querySelector('label[for="floor-select"]');
+      const roomLabel = document.querySelector('label[for="room-select"]');
+
       const title = document.getElementById("event-title");
       const description = document.getElementById("event-description");
       const date = document.getElementById("selected-date");
@@ -156,459 +262,1070 @@
       const previewBox = document.getElementById("preview-box");
       const uploadBtn = document.getElementById("upload-btn");
       const deleteBtn = document.getElementById("delete-btn");
+      const loadingOverlay = document.getElementById("event-loading-overlay");
 
       const FALLBACK_IMAGE_URL = "/assets/images/pcuu.jpg";
       let currentImageURL = FALLBACK_IMAGE_URL;
-      let originalImageWasBase64 = false;
-
-      // Hide floor and room selects by default
-      floorSelect.style.display = "none";
-      roomSelect.style.display = "none";
 
       previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
       previewBox.textContent = "";
 
-      // Load buildings
-      async function loadBuildings() {
-        try {
-          const snapshot = await get(ref(db, "buildings"));
-          const buildings = snapshot.val();
-          if (buildings) {
-            buildingSelect.innerHTML =
-              '<option value="">Select Building</option>';
-            Object.keys(buildings).forEach((buildingId) => {
-              const building = buildings[buildingId];
-              const option = document.createElement("option");
-              option.value = buildingId;
-              option.textContent = building.name;
-              buildingSelect.appendChild(option);
-            });
-          }
-        } catch (error) {
-          console.error("Error loading buildings:", error);
-          Swal.fire({
-            title: "Error",
-            text: "Failed to load buildings. Please refresh the page.",
-            icon: "error",
-          });
+      function showLoadingOverlay(message = "Loading event…") {
+        if (!loadingOverlay) return;
+        const textEl = loadingOverlay.querySelector("p");
+        if (textEl) {
+          textEl.textContent = message;
+        }
+        loadingOverlay.style.display = "flex";
+        loadingOverlay.setAttribute("aria-busy", "true");
+      }
+
+      function hideLoadingOverlay() {
+        if (loadingOverlay) {
+          loadingOverlay.style.display = "none";
+          loadingOverlay.setAttribute("aria-busy", "false");
         }
       }
 
-      // Load floors for a building
+      const FIELD_ERROR_ELEMENTS = {
+        [title.id]: document.getElementById("event-title-error"),
+        [description.id]: document.getElementById("event-description-error"),
+        [date.id]: document.getElementById("selected-date-error"),
+        [startTime.id]: document.getElementById("start-time-error"),
+        [endTime.id]: document.getElementById("end-time-error"),
+        [buildingSelect.id]: document.getElementById("building-select-error"),
+        [floorSelect.id]: document.getElementById("floor-select-error"),
+        [roomSelect.id]: document.getElementById("room-select-error"),
+      };
+
+      const DRAFT_STORAGE_KEY = eventId ? `editEventDraft:${eventId}` : null;
+      const BUILDINGS_CACHE_KEY = "cachedBuildingDirectory";
+      const TRACKED_INPUTS = [
+        title,
+        description,
+        date,
+        startTime,
+        endTime,
+        buildingSelect,
+        floorSelect,
+        roomSelect,
+      ];
+
+      let isApplyingExternalData = false;
+      let loadedEventContext = null;
+      let buildingCache = null;
+      let isSubmitting = false; // Prevent concurrent submissions
+      let uploadedImageData = null; // Store validated image
+      let isDeleting = false; // Prevent concurrent deletions
+
+      // 🛡️ Security Functions
+      function sanitizeInput(input) {
+        if (typeof input !== "string") return "";
+        return input
+          .trim()
+          .replace(/[<>\"']/g, "") // Remove dangerous characters
+          .substring(0, 1000); // Limit length
+      }
+
+      function escapeHtml(text) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return String(text || "").replace(/[&<>"']/g, (m) => map[m]);
+      }
+
+      function validateEventTitle(title) {
+        const sanitized = sanitizeInput(title);
+        if (!sanitized || sanitized.length < 3) {
+          throw new Error("Event title must be at least 3 characters");
+        }
+        if (sanitized.length > 200) {
+          throw new Error("Event title must not exceed 200 characters");
+        }
+        if (!/^[a-zA-Z0-9\s\-_.,!?&():]+$/.test(sanitized)) {
+          throw new Error("Event title contains invalid characters");
+        }
+        return sanitized;
+      }
+
+      function validateEventDescription(desc) {
+        const sanitized = sanitizeInput(desc);
+        if (!sanitized || sanitized.length < 10) {
+          throw new Error("Event description must be at least 10 characters");
+        }
+        if (sanitized.length > 5000) {
+          throw new Error("Event description must not exceed 5000 characters");
+        }
+        return sanitized;
+      }
+
+      function validateDate(dateStr) {
+        if (!dateStr) throw new Error("Date is required");
+        const selectedDate = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (isNaN(selectedDate.getTime())) {
+          throw new Error("Invalid date format");
+        }
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+          throw new Error("Date cannot be in the past");
+        }
+
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 5);
+
+        if (selectedDate > maxDate) {
+          throw new Error("Date cannot be more than 5 years in the future");
+        }
+
+        return dateStr;
+      }
+
+      function validateTime(timeStr, fieldName) {
+        if (!timeStr) throw new Error(`${fieldName} is required`);
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        if (!timeRegex.test(timeStr)) {
+          throw new Error(`${fieldName} has invalid format`);
+        }
+        return timeStr;
+      }
+
+      function validateTimeRange(startTime, endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+
+        if (end <= start) {
+          throw new Error("End time must be after start time");
+        }
+
+        const diffMinutes = (end - start) / 60000;
+        if (diffMinutes < 15) {
+          throw new Error("Event must be at least 15 minutes long");
+        }
+
+        if (diffMinutes > 1440) {
+          throw new Error("Event cannot exceed 24 hours");
+        }
+
+        return true;
+      }
+
+      async function validateAndProcessImage(file) {
+        if (!file) return null;
+
+        if (file.size > 2 * 1024 * 1024) {
+          throw new Error("Image size must be less than 2MB");
+        }
+
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+          throw new Error("Only JPEG, PNG, GIF, and WebP images are allowed");
+        }
+
+        const extension = file.name.split(".").pop().toLowerCase();
+        const validExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+        if (!validExtensions.includes(extension)) {
+          throw new Error("Invalid file extension");
+        }
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onerror = () => reject(new Error("Failed to read image file"));
+
+          reader.onload = (e) => {
+            const img = new Image();
+
+            img.onerror = () =>
+              reject(new Error("Invalid or corrupted image file"));
+
+            img.onload = () => {
+              if (img.width < 50 || img.height < 50) {
+                reject(new Error("Image must be at least 50x50 pixels"));
+                return;
+              }
+
+              if (img.width > 4000 || img.height > 4000) {
+                reject(new Error("Image dimensions too large (max 4000x4000)"));
+                return;
+              }
+
+              resolve(e.target.result);
+            };
+
+            img.src = e.target.result;
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function clearFieldError(field) {
+        if (!field) return;
+        field.classList.remove("building-error");
+        field.removeAttribute("aria-invalid");
+        const errorEl = FIELD_ERROR_ELEMENTS[field.id];
+        if (errorEl) {
+          errorEl.textContent = "";
+          errorEl.style.display = "none";
+        }
+      }
+
+      function showFieldError(field, message) {
+        if (!field) return;
+        field.classList.add("building-error");
+        field.setAttribute("aria-invalid", "true");
+        const errorEl = FIELD_ERROR_ELEMENTS[field.id];
+        if (errorEl) {
+          errorEl.textContent = message;
+          errorEl.style.display = "block";
+        }
+      }
+
+      function clearAllFieldErrors() {
+        TRACKED_INPUTS.forEach(clearFieldError);
+      }
+
+      function collectDraftPayload() {
+        return {
+          event_title: title.value ?? "",
+          event_description: description.value ?? "",
+          selected_date: date.value ?? "",
+          start_time: startTime.value ?? "",
+          end_time: endTime.value ?? "",
+          building_id: buildingSelect.value ?? "",
+          floor_id:
+            floorSelect.style.display === "none"
+              ? ""
+              : (floorSelect.value ?? ""),
+          room_id:
+            roomSelect.style.display === "none" ? "" : (roomSelect.value ?? ""),
+          timestamp: Date.now(),
+        };
+      }
+
+      function saveDraft() {
+        if (!DRAFT_STORAGE_KEY || isApplyingExternalData) return;
+        try {
+          const payload = collectDraftPayload();
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+}
+      }
+
+      function clearDraft() {
+        if (!DRAFT_STORAGE_KEY) return;
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+
+      async function applyLocationSelection({
+        building_id,
+        floor_id,
+        room_id,
+      }) {
+        clearFieldError(buildingSelect);
+        if (!building_id) {
+          buildingSelect.value = "";
+          floorSelect.style.display = "none";
+          roomSelect.style.display = "none";
+          if (floorLabel) floorLabel.style.display = "none";
+          if (roomLabel) roomLabel.style.display = "none";
+          clearFieldError(floorSelect);
+          clearFieldError(roomSelect);
+          return;
+        }
+
+        buildingSelect.value = building_id;
+        await loadFloors(building_id);
+
+        if (
+          floor_id &&
+          Array.from(floorSelect.options).some((opt) => opt.value === floor_id)
+        ) {
+          floorSelect.value = floor_id;
+          await loadRooms(building_id, floor_id);
+        } else {
+          floorSelect.value = "";
+          roomSelect.style.display = "none";
+          if (roomLabel) roomLabel.style.display = "none";
+          clearFieldError(floorSelect);
+          clearFieldError(roomSelect);
+        }
+
+        if (
+          room_id &&
+          Array.from(roomSelect.options).some((opt) => opt.value === room_id)
+        ) {
+          roomSelect.value = room_id;
+          if (roomLabel) roomLabel.style.display = "block";
+        } else {
+          roomSelect.value = "";
+          if (roomLabel) roomLabel.style.display = roomSelect.style.display;
+          clearFieldError(roomSelect);
+        }
+      }
+
+      async function applyDraft(draft) {
+        if (!draft) return;
+        isApplyingExternalData = true;
+        try {
+          title.value = draft.event_title || "";
+          description.value = draft.event_description || "";
+          date.value = draft.selected_date || "";
+          startTime.value = draft.start_time || "";
+          endTime.value = draft.end_time || "";
+
+          await applyLocationSelection({
+            building_id: draft.building_id || "",
+            floor_id: draft.floor_id || "",
+            room_id: draft.room_id || "",
+          });
+        } finally {
+          isApplyingExternalData = false;
+        }
+      }
+
+      function hasDraftDifferences(draft, baseline = {}) {
+        if (!draft) return false;
+        const keys = [
+          "event_title",
+          "event_description",
+          "selected_date",
+          "start_time",
+          "end_time",
+          "building_id",
+          "floor_id",
+          "room_id",
+        ];
+        return keys.some((key) => (draft[key] || "") !== (baseline[key] || ""));
+      }
+
+      function maybeRestoreDraft() {
+        if (!DRAFT_STORAGE_KEY) return;
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return;
+
+        let draft;
+        try {
+          draft = JSON.parse(raw);
+        } catch (error) {
+localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
+
+        if (!hasDraftDifferences(draft, loadedEventContext)) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
+
+        Swal.fire({
+          title: "Restore unsaved changes?",
+          text: "We found a saved draft for this event. Would you like to restore it?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Restore",
+          cancelButtonText: "Discard",
+          reverseButtons: true,
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await applyDraft(draft);
+          } else {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+          }
+        });
+      }
+
+      TRACKED_INPUTS.forEach((inputEl) => {
+        if (!inputEl) return;
+        const handler = () => {
+          clearFieldError(inputEl);
+          saveDraft();
+        };
+        const eventName = inputEl.tagName === "SELECT" ? "change" : "input";
+        inputEl.addEventListener(eventName, handler);
+        if (eventName !== "change") {
+          inputEl.addEventListener("change", handler);
+        }
+      });
+
+      showLoadingOverlay();
+
+      async function loadBuildings() {
+        showLoadingOverlay("Loading buildings…");
+        try {
+          const snapshot = await get(ref(db, "Buildings"));
+          const buildings = snapshot.val();
+          buildingCache = buildings || {};
+          try {
+            sessionStorage.setItem(
+              BUILDINGS_CACHE_KEY,
+              JSON.stringify(buildingCache),
+            );
+          } catch (storageError) {
+}
+
+          buildingSelect.innerHTML =
+            '<option value="">Select Building</option>';
+          if (buildings) {
+            Object.keys(buildings).forEach((id) => {
+              const buildingData = buildings[id];
+              const name = buildingData.buildingName || id;
+              const opt = document.createElement("option");
+              opt.value = id;
+              opt.textContent = name;
+              buildingSelect.appendChild(opt);
+            });
+}
+        } catch (error) {
+Swal.fire("Error", "Could not load buildings.", "error");
+          hideLoadingOverlay();
+        } finally {
+          button.disabled = false;
+          button.textContent = "Update Event";
+        }
+      }
+
       async function loadFloors(buildingId) {
         floorSelect.innerHTML = '<option value="">Select Floor</option>';
         roomSelect.innerHTML = '<option value="">Select Room</option>';
         floorSelect.style.display = "none";
         roomSelect.style.display = "none";
+        if (floorLabel) floorLabel.style.display = "none";
+        if (roomLabel) roomLabel.style.display = "none";
 
         if (!buildingId) return;
 
         try {
           const floorSnap = await get(
-            ref(db, `buildings/${buildingId}/floors`)
+            ref(db, `Buildings/${buildingId}/Floors`),
           );
-          const buildingRoomSnap = await get(
-            ref(db, `buildings/${buildingId}/rooms`)
-          );
-
           if (floorSnap.exists()) {
-            const floors = floorSnap.val();
             floorSelect.style.display = "block";
-            Object.keys(floors).forEach((floorId) => {
-              const floor = floors[floorId];
-              const option = document.createElement("option");
-              option.value = floorId;
-              option.textContent = `Floor ${floor.floorNumber}`;
-              floorSelect.appendChild(option);
-            });
-          }
-
-          if (buildingRoomSnap.exists()) {
-            const rooms = buildingRoomSnap.val();
-            roomSelect.style.display = "block";
-            Object.keys(rooms).forEach((roomId) => {
-              const room = rooms[roomId];
-              const option = document.createElement("option");
-              option.value = roomId;
-              option.textContent = room.roomName;
-              roomSelect.appendChild(option);
+            if (floorLabel) floorLabel.style.display = "block";
+            const floors = floorSnap.val();
+            Object.keys(floors).forEach((id) => {
+              const floorNum = floors[id].floorNumber || id;
+              const opt = document.createElement("option");
+              opt.value = id;
+              opt.textContent = `Floor ${floorNum}`;
+              floorSelect.appendChild(opt);
             });
           }
         } catch (error) {
-          console.error("Error loading floors/rooms:", error);
-        }
+}
       }
 
-      // Load rooms for a floor
       async function loadRooms(buildingId, floorId) {
         roomSelect.innerHTML = '<option value="">Select Room</option>';
         roomSelect.style.display = "none";
+        if (roomLabel) roomLabel.style.display = "none";
 
         if (!floorId) return;
 
         try {
           const roomSnap = await get(
-            ref(db, `buildings/${buildingId}/floors/${floorId}/rooms`)
+            ref(db, `Buildings/${buildingId}/Floors/${floorId}/Rooms`),
           );
           if (roomSnap.exists()) {
-            const rooms = roomSnap.val();
             roomSelect.style.display = "block";
-            Object.keys(rooms).forEach((roomId) => {
-              const room = rooms[roomId];
-              const option = document.createElement("option");
-              option.value = roomId;
-              option.textContent = room.roomName;
-              roomSelect.appendChild(option);
+            if (roomLabel) roomLabel.style.display = "block";
+            const rooms = roomSnap.val();
+            Object.keys(rooms).forEach((id) => {
+              const roomName = rooms[id].roomName || id;
+              const opt = document.createElement("option");
+              opt.value = id;
+              opt.textContent = roomName;
+              roomSelect.appendChild(opt);
             });
           }
         } catch (error) {
-          console.error("Error loading rooms:", error);
-        }
+}
       }
 
-      // Match location string to building/floor/room IDs
       async function matchLocationParts(locationString) {
-        if (!locationString)
-          return { building_id: null, floor_id: null, room_id: null };
+        const result = { building_id: null, floor_id: null, room_id: null };
+        if (!locationString) return result;
 
-        const parts = locationString.split(" - ");
-        let matched = {
-          building_id: null,
-          floor_id: null,
-          room_id: null,
-        };
+        const parts = locationString.split(" - ").map((p) => p.trim());
 
-        // Get all buildings
-        const buildingsSnap = await get(ref(db, "buildings"));
-        const buildings = buildingsSnap.val() || {};
+        try {
+          let buildings = buildingCache;
+          if (!buildings || Object.keys(buildings).length === 0) {
+            let cached = null;
+            try {
+              cached = sessionStorage.getItem(BUILDINGS_CACHE_KEY);
+            } catch (storageError) {
+}
+            if (cached) {
+              try {
+                buildings = JSON.parse(cached);
+                buildingCache = buildings;
+              } catch (parseError) {
+sessionStorage.removeItem(BUILDINGS_CACHE_KEY);
+              }
+            }
+          }
 
-        for (const [buildingId, building] of Object.entries(buildings)) {
-          if (building.name === parts[0]) {
-            matched.building_id = buildingId;
+          if (!buildings || Object.keys(buildings).length === 0) {
+            const buildingsSnap = await get(ref(db, "Buildings"));
+            buildings = buildingsSnap.val() || {};
+            buildingCache = buildings;
+          }
 
-            // Check for floor and room
-            if (parts.length > 1) {
-              // Check if second part is a floor
-              const floorPrefix = "Floor ";
-              if (parts[1].startsWith(floorPrefix)) {
-                const floorNumber = parts[1].substring(floorPrefix.length);
-                const floorsSnap = await get(
-                  ref(db, `buildings/${buildingId}/floors`)
-                );
-                const floors = floorsSnap.val() || {};
+          if (!buildings || Object.keys(buildings).length === 0) {
+            return result;
+          }
 
-                for (const [floorId, floor] of Object.entries(floors)) {
-                  if (floor.floorNumber.toString() === floorNumber) {
-                    matched.floor_id = floorId;
+          for (const [bId, bData] of Object.entries(buildings)) {
+            const name = bData.buildingName || bId;
+            if (name === parts[0]) {
+              result.building_id = bId;
 
-                    // If there's a third part, it's a room in this floor
-                    if (parts.length > 2) {
-                      const roomsSnap = await get(
-                        ref(
-                          db,
-                          `buildings/${buildingId}/floors/${floorId}/rooms`
-                        )
-                      );
-                      const rooms = roomsSnap.val() || {};
+              if (parts[1]) {
+                const floorSnap = await get(ref(db, `Buildings/${bId}/Floors`));
+                if (floorSnap.exists()) {
+                  const floors = floorSnap.val();
+                  const floorMatch = parts[1].match(/Floor\s+(\d+)/i);
+                  const targetFloorNum = floorMatch ? floorMatch[1] : parts[1];
 
-                      for (const [roomId, room] of Object.entries(rooms)) {
-                        if (room.roomName === parts[2]) {
-                          matched.room_id = roomId;
-                          break;
+                  for (const [fId, fData] of Object.entries(floors)) {
+                    const floorNum = String(fData.floorNumber || fId);
+
+                    if (floorNum === targetFloorNum) {
+                      result.floor_id = fId;
+
+                      if (parts[2]) {
+                        const roomSnap = await get(
+                          ref(db, `Buildings/${bId}/Floors/${fId}/Rooms`),
+                        );
+                        if (roomSnap.exists()) {
+                          const rooms = roomSnap.val();
+                          for (const [rId, rData] of Object.entries(rooms)) {
+                            if (rData.roomName === parts[2]) {
+                              result.room_id = rId;
+                              break;
+                            }
+                          }
                         }
                       }
+                      break;
                     }
-                    break;
-                  }
-                }
-              } else {
-                // Second part might be a room directly under building
-                const roomsSnap = await get(
-                  ref(db, `buildings/${buildingId}/rooms`)
-                );
-                const rooms = roomsSnap.val() || {};
-
-                for (const [roomId, room] of Object.entries(rooms)) {
-                  if (room.roomName === parts[1]) {
-                    matched.room_id = roomId;
-                    break;
                   }
                 }
               }
+              break;
             }
-
-            break;
           }
-        }
+        } catch (error) {
+}
 
-        return matched;
+        return result;
       }
 
-      // Load event data
       async function loadEventData() {
+        showLoadingOverlay("Loading event…");
         if (!eventId) {
-          Swal.fire({
-            title: "Error!",
-            text: "Missing event ID.",
-            icon: "error",
-            confirmButtonText: "OK",
-          });
+          Swal.fire("Error", "Missing event ID.", "error");
+          hideLoadingOverlay();
           return;
         }
 
         try {
           const snapshot = await get(ref(db, `events/${eventId}`));
           const data = snapshot.val();
-
           if (!data) {
-            Swal.fire({
-              title: "Event Not Found!",
-              text: "No event data available for the provided ID.",
-              icon: "error",
-              confirmButtonText: "OK",
-            });
+            loadedEventContext = null;
+            maybeRestoreDraft();
             return;
           }
 
-          // Fill form with event data
           title.value = data.event_title || "";
           description.value = data.event_description || "";
           date.value = data.selected_date || "";
           startTime.value = data.start_time || "";
           endTime.value = data.end_time || "";
 
-          // Handle image
           if (data.image_url) {
             currentImageURL = data.image_url;
             previewBox.style.backgroundImage = `url(${data.image_url})`;
             previewBox.textContent = "";
-            originalImageWasBase64 = data.has_base64_image || false;
           }
 
-          // Handle location
-          if (data.location) {
-            const locationParts = await matchLocationParts(data.location);
-
-            if (locationParts.building_id) {
-              buildingSelect.value = locationParts.building_id;
-              await loadFloors(locationParts.building_id);
-
-              if (locationParts.floor_id) {
-                floorSelect.value = locationParts.floor_id;
-                await loadRooms(
-                  locationParts.building_id,
-                  locationParts.floor_id
-                );
-              }
-
-              if (locationParts.room_id) {
-                roomSelect.value = locationParts.room_id;
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error loading event data:", error);
-          Swal.fire({
-            title: "Error!",
-            text: "Failed to load event data: " + error.message,
-            icon: "error",
-            confirmButtonText: "OK",
+          const loc = data.location
+            ? await matchLocationParts(data.location)
+            : { building_id: "", floor_id: "", room_id: "" };
+          await applyLocationSelection({
+            building_id: loc.building_id || "",
+            floor_id: loc.floor_id || "",
+            room_id: loc.room_id || "",
           });
+
+          loadedEventContext = {
+            event_title: title.value || "",
+            event_description: description.value || "",
+            selected_date: date.value || "",
+            start_time: startTime.value || "",
+            end_time: endTime.value || "",
+            building_id: loc.building_id || "",
+            floor_id: loc.floor_id || "",
+            room_id: loc.room_id || "",
+          };
+
+          maybeRestoreDraft();
+        } catch (error) {
+} finally {
+          hideLoadingOverlay();
         }
       }
 
-      // Event Listeners
-      buildingSelect.addEventListener("change", async (event) => {
-        const selectedBuildingId = event.target.value;
-        await loadFloors(selectedBuildingId);
+      buildingSelect.addEventListener("change", async (e) => {
+        await loadFloors(e.target.value);
+        saveDraft();
       });
 
-      floorSelect.addEventListener("change", async (event) => {
-        const selectedBuildingId = buildingSelect.value;
-        const selectedFloorId = event.target.value;
-        await loadRooms(selectedBuildingId, selectedFloorId);
-      });
-
-      imageInput.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          // File size validation (max 2MB)
-          if (file.size > 2 * 1024 * 1024) {
-            Swal.fire({
-              title: "File too large",
-              text: "Please select an image smaller than 2MB",
-              icon: "warning",
-            });
-            imageInput.value = "";
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            previewBox.style.backgroundImage = `url(${e.target.result})`;
-            previewBox.textContent = "";
-          };
-          reader.readAsDataURL(file);
-        }
+      floorSelect.addEventListener("change", async (e) => {
+        await loadRooms(buildingSelect.value, e.target.value);
+        saveDraft();
       });
 
       uploadBtn.addEventListener("click", () => {
         imageInput.click();
       });
 
-      deleteBtn.addEventListener("click", () => {
-        imageInput.value = "";
-        previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
-        previewBox.textContent = "";
-        currentImageURL = FALLBACK_IMAGE_URL;
+      imageInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          uploadedImageData = null;
+          return;
+        }
+
+        try {
+          showLoadingOverlay("Validating image...");
+
+          const validatedDataURL = await validateAndProcessImage(file);
+          uploadedImageData = validatedDataURL;
+          currentImageURL = validatedDataURL;
+
+          previewBox.style.backgroundImage = `url(${validatedDataURL})`;
+          previewBox.textContent = "";
+
+          hideLoadingOverlay();
+
+          const toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+          });
+
+          toast.fire({
+            icon: "success",
+            title: "Image uploaded successfully",
+          });
+        } catch (error) {
+imageInput.value = "";
+          uploadedImageData = null;
+          previewBox.style.backgroundImage = currentImageURL
+            ? `url(${currentImageURL})`
+            : `url(${FALLBACK_IMAGE_URL})`;
+
+          hideLoadingOverlay();
+
+          Swal.fire({
+            title: "Image Upload Failed",
+            text: error.message || "Please select a valid image file.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        }
       });
 
-      button.addEventListener("click", async () => {
-        // Validate inputs
-        const selectedBuilding = buildingSelect.value;
-        const selectedFloor =
-          floorSelect.style.display !== "none" ? floorSelect.value : "";
-        const selectedRoom =
-          roomSelect.style.display !== "none" ? roomSelect.value : "";
-
-        if (
-          !title.value ||
-          !description.value ||
-          !date.value ||
-          !startTime.value ||
-          !endTime.value ||
-          !selectedBuilding
-        ) {
+      deleteBtn.addEventListener("click", async () => {
+        if (isDeleting) {
           Swal.fire({
-            title: "Missing Information!",
-            text: "Please fill in all required fields.",
-            icon: "warning",
-            confirmButtonText: "OK",
+            title: "Please Wait",
+            text: "Deletion is already in progress.",
+            icon: "info",
           });
           return;
         }
 
-        // Show loading state
-        button.disabled = true;
-        button.textContent = "Updating...";
+        if (!eventId) {
+          Swal.fire("Error", "Invalid event ID.", "error");
+          return;
+        }
+
+        const result = await Swal.fire({
+          title: "Delete Event?",
+          html: `
+        <div style="text-align: left;">
+          <p><strong>Event:</strong> ${escapeHtml(title.value || "Untitled")}</p>
+          <p style="color: #d32f2f; margin-top: 15px;">
+            ⚠️ This action cannot be undone. The event will be permanently deleted.
+          </p>
+        </div>
+      `,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, delete it!",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#6b7280",
+          focusCancel: true,
+        });
+
+        if (!result.isConfirmed) return;
+
+        isDeleting = true;
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting...";
 
         try {
-          // Get location name
-          let readableLocation = "";
-          const buildingSnap = await get(
-            ref(db, `buildings/${selectedBuilding}`)
-          );
-          const buildingName = buildingSnap.val()?.name || selectedBuilding;
+          showLoadingOverlay("Deleting event...");
 
-          if (selectedFloor && selectedRoom) {
-            const floorSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
-            );
-            const roomSnap = await get(
-              ref(
-                db,
-                `buildings/${selectedBuilding}/floors/${selectedFloor}/rooms/${selectedRoom}`
-              )
-            );
-            readableLocation = `${buildingName} - Floor ${
-              floorSnap.val()?.floorNumber
-            } - ${roomSnap.val()?.roomName}`;
-          } else if (selectedFloor) {
-            const floorSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
-            );
-            readableLocation = `${buildingName} - Floor ${
-              floorSnap.val()?.floorNumber
-            }`;
-          } else if (selectedRoom) {
-            const roomSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/rooms/${selectedRoom}`)
-            );
-            readableLocation = `${buildingName} - ${roomSnap.val()?.roomName}`;
-          } else {
-            readableLocation = buildingName;
+          const eventRef = ref(db, `events/${eventId}`);
+          const snapshot = await get(eventRef);
+
+          if (!snapshot.exists()) {
+            throw new Error("Event not found or already deleted");
           }
 
-          // Handle image
-          let imageURL = currentImageURL;
-          let imageWasUploaded = false;
+          const eventData = snapshot.val();
+          const backup = { path: `events/${eventId}`, data: eventData };
 
-          // Check if there's a new image
-          const file = imageInput.files[0];
-          if (file) {
+          try {
+            await update(eventRef, null);
+
+            // Log event deletion
+            adminTrail.logEventDelete(eventId, eventData);
+hideLoadingOverlay();
+            clearDraft();
+
+            await Swal.fire({
+              title: "Deleted!",
+              text: "Event has been deleted successfully.",
+              icon: "success",
+              timer: 2000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+            });
+
+            window.location.href = "/pages/manage_events.html";
+          } catch (deleteError) {
+            // Attempt rollback
+try {
+              await set(ref(db, backup.path), backup.data);
+              Swal.fire(
+                "Error",
+                "Deletion failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Deletion failed and rollback unsuccessful. Please contact administrator.",
+                "error",
+              );
+            }
+          }
+        } catch (error) {
+hideLoadingOverlay();
+          Swal.fire({
+            title: "Error",
+            text: error.message || "Could not delete event. Please try again.",
+            icon: "error",
+          });
+        } finally {
+          isDeleting = false;
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = "Delete Image";
+        }
+      });
+
+      function validateForm() {
+        clearAllFieldErrors();
+        const errors = [];
+
+        // Validate title with security checks
+        try {
+          validateEventTitle(title.value);
+        } catch (error) {
+          errors.push({ field: title, message: error.message });
+        }
+
+        // Validate description with security checks
+        try {
+          validateEventDescription(description.value);
+        } catch (error) {
+          errors.push({ field: description, message: error.message });
+        }
+
+        // Validate date
+        try {
+          validateDate(date.value);
+        } catch (error) {
+          errors.push({ field: date, message: error.message });
+        }
+
+        // Validate start time
+        try {
+          validateTime(startTime.value, "Start time");
+        } catch (error) {
+          errors.push({ field: startTime, message: error.message });
+        }
+
+        // Validate end time
+        try {
+          validateTime(endTime.value, "End time");
+        } catch (error) {
+          errors.push({ field: endTime, message: error.message });
+        }
+
+        // Validate time range
+        if (startTime.value && endTime.value) {
+          try {
+            validateTimeRange(startTime.value, endTime.value);
+          } catch (error) {
+            errors.push({ field: endTime, message: error.message });
+          }
+        }
+
+        // Validate building selection
+        if (!buildingSelect.value) {
+          errors.push({
+            field: buildingSelect,
+            message: "Choose a building for the event.",
+          });
+        }
+
+        // Validate floor if visible
+        const floorVisible =
+          floorSelect.style.display !== "none" &&
+          floorSelect.options.length > 1;
+        if (floorVisible && !floorSelect.value) {
+          errors.push({
+            field: floorSelect,
+            message: "Choose a floor for the event.",
+          });
+        }
+
+        // Validate room if visible
+        const roomVisible =
+          roomSelect.style.display !== "none" && roomSelect.options.length > 1;
+        if (roomVisible && !roomSelect.value) {
+          errors.push({
+            field: roomSelect,
+            message: "Choose a room for the event.",
+          });
+        }
+
+        if (errors.length) {
+          errors.forEach(({ field, message }) =>
+            showFieldError(field, message),
+          );
+          const firstField = errors[0]?.field;
+          if (firstField) {
+            firstField.focus();
+          }
+          Swal.fire({
+            icon: "error",
+            title: "Please review the highlighted fields.",
+            html: `Found ${errors.length} error${errors.length > 1 ? "s" : ""} in the form.`,
+            confirmButtonText: "Got it",
+          });
+          return false;
+        }
+
+        return true;
+      }
+
+      function buildLocationString() {
+        const buildingName = buildingSelect.value
+          ? buildingSelect.options[buildingSelect.selectedIndex].textContent
+          : "";
+        const floorText = floorSelect.value
+          ? floorSelect.options[floorSelect.selectedIndex].textContent
+          : "";
+        const roomName = roomSelect.value
+          ? roomSelect.options[roomSelect.selectedIndex].textContent
+          : "";
+
+        return [buildingName, floorText, roomName]
+          .filter((segment) => segment && segment.trim().length > 0)
+          .join(" - ");
+      }
+
+      button.addEventListener("click", async () => {
+        // Prevent concurrent submissions
+        if (isSubmitting) {
+          Swal.fire({
+            title: "Please Wait",
+            text: "Event update is already in progress.",
+            icon: "info",
+          });
+          return;
+        }
+
+        if (!eventId) {
+          Swal.fire("Error", "Invalid event ID.", "error");
+          return;
+        }
+
+        if (!validateForm()) return;
+
+        isSubmitting = true;
+        button.disabled = true;
+        button.textContent = "Updating…";
+
+        try {
+          showLoadingOverlay("Updating event...");
+
+          // Use validated image or keep current
+          let finalImageURL = currentImageURL || FALLBACK_IMAGE_URL;
+          if (uploadedImageData) {
+            finalImageURL = uploadedImageData;
+          } else if (imageInput.files[0]) {
+            // Validate new image if not pre-validated
             try {
-              // Create a Base64 representation of the image
-              const base64Image = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
+              finalImageURL = await validateAndProcessImage(
+                imageInput.files[0],
+              );
+            } catch (imgError) {
+const result = await Swal.fire({
+                title: "Image Validation Failed",
+                text: "Continue with current image?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, keep current",
+                cancelButtonText: "Cancel update",
               });
 
-              imageURL = base64Image;
-              imageWasUploaded = true;
-              console.log("Image converted to Base64 for storage in database");
-            } catch (err) {
-              console.error("Image processing failed:", err);
-              Swal.fire({
-                title: "Image Upload Failed",
-                text: "Event will be updated with the previous image.",
-                icon: "warning",
-                timer: 3000,
-              });
+              if (!result.isConfirmed) {
+                throw new Error("Update cancelled by user");
+              }
             }
           }
 
-          // Create event data
+          // Sanitize and validate all inputs
+          const sanitizedTitle = validateEventTitle(title.value);
+          const sanitizedDescription = validateEventDescription(
+            description.value,
+          );
+          const validatedDate = validateDate(date.value);
+          const validatedStartTime = validateTime(
+            startTime.value,
+            "Start time",
+          );
+          const validatedEndTime = validateTime(endTime.value, "End time");
+          validateTimeRange(validatedStartTime, validatedEndTime);
+
+          const locationString = buildLocationString();
+
+          // Get current event data for backup
+          const eventRef = ref(db, `events/${eventId}`);
+          const currentSnapshot = await get(eventRef);
+
+          if (!currentSnapshot.exists()) {
+            throw new Error("Event not found or was deleted");
+          }
+
+          const backupData = currentSnapshot.val();
+
+          // Build updated event data
           const eventData = {
-            event_title: title.value,
-            event_description: description.value,
-            selected_date: date.value,
-            start_time: startTime.value,
-            end_time: endTime.value,
-            location: readableLocation,
-            image_url: imageURL,
-            has_base64_image: imageWasUploaded || originalImageWasBase64,
-            updated_at: new Date().toISOString(),
+            ...backupData, // Preserve existing fields
+            event_title: sanitizedTitle,
+            event_description: sanitizedDescription,
+            selected_date: validatedDate,
+            start_time: validatedStartTime,
+            end_time: validatedEndTime,
+            image_url: finalImageURL,
+            location: escapeHtml(locationString),
+            last_modified: new Date().toISOString(),
+            modified_by: auth.currentUser?.uid || "unknown",
+            version: (backupData.version || 0) + 1,
           };
 
-          console.log("Updating event with data:", {
-            ...eventData,
-            image_url:
-              imageWasUploaded || originalImageWasBase64
-                ? "BASE64_IMAGE_DATA (not shown for brevity)"
-                : eventData.image_url,
-          });
+          try {
+            // Update event in database
+            await update(eventRef, eventData);
 
-          // Save to database
-          await update(ref(db, `events/${eventId}`), eventData);
+            // Log event edit to admin trail
+            adminTrail.logEventEdit(eventId, eventData);
+hideLoadingOverlay();
+            clearDraft();
 
-          // Show success message
-          Swal.fire({
-            title: "Event Updated!",
-            icon: "success",
-            showConfirmButton: false,
-            timer: 1500,
-            timerProgressBar: true,
-          }).then(() => {
+            loadedEventContext = {
+              ...eventData,
+              building_id: buildingSelect.value || "",
+              floor_id:
+                floorSelect.style.display === "none"
+                  ? ""
+                  : floorSelect.value || "",
+              room_id:
+                roomSelect.style.display === "none"
+                  ? ""
+                  : roomSelect.value || "",
+            };
+
+            await Swal.fire({
+              title: "✅ Event Updated!",
+              html: `<strong>${escapeHtml(sanitizedTitle)}</strong> has been updated successfully.`,
+              icon: "success",
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+            });
+
             window.location.href = "/pages/manage_events.html";
-          });
+          } catch (updateError) {
+            // Attempt rollback
+try {
+              await update(eventRef, backupData);
+              Swal.fire(
+                "Error",
+                "Update failed and changes were rolled back.",
+                "error",
+              );
+            } catch (rollbackError) {
+Swal.fire(
+                "Critical Error",
+                "Update failed and rollback unsuccessful. Please contact administrator.",
+                "error",
+              );
+            }
+          }
         } catch (error) {
-          console.error("Event update error:", error);
+hideLoadingOverlay();
+
           Swal.fire({
-            title: "Error!",
-            text: "Failed to update event: " + error.message,
+            title: "Error",
+            text: error.message || "Could not update event. Please try again.",
             icon: "error",
             confirmButtonText: "OK",
           });
         } finally {
-          // Reset button state
+          isSubmitting = false;
           button.disabled = false;
           button.textContent = "Update Event";
         }
       });
 
-      // Initialize page
       await loadBuildings();
       await loadEventData();
     </script>

@@ -1,60 +1,76 @@
-// Add at the top of your JS file
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { firebaseConfig } from "/includes/firebaseConfig.js";
+import {
+  initializeApp,
+  getApp,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+import AdminTrail from "/includes/adminTrail.js";
 
-// Firebase config (same as used during login)
-const firebaseConfig = {
-  apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-  authDomain: "pcu-maps-5d985.firebaseapp.com",
-  databaseURL: "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "pcu-maps-5d985",
-  storageBucket: "pcu-maps-5d985.firebasestorage.app",
-  messagingSenderId: "922913954447",
-  appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa"
-};
+// Initialize Firebase safely (avoids duplicate initialization)
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  app = getApp();
+}
 
-// Initialize Firebase app + auth
-const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getDatabase(app);
+const adminTrail = new AdminTrail(db, auth);
 
-// Handle logout click
+// Ensure SweetAlert2 is available (fallback loader)
+if (typeof window.Swal === "undefined") {
+  const swalScript = document.createElement("script");
+  swalScript.src = "https://cdn.jsdelivr.net/npm/sweetalert2@11";
+  document.head.appendChild(swalScript);
+}
+
+// Handle logout click (defensive null check)
 const logoutBtn = document.getElementById("logout");
-logoutBtn.addEventListener("click", () => {
-  Swal.fire({
-    title: 'Are you sure?',
-    text: 'Do you really want to log out?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Yes, log me out!',
-    cancelButtonText: 'Cancel',
-    customClass: {
-      confirmButton: 'btn-blue', // Adding custom class for blue button
-      cancelButton: 'btn-cancel' // Optional: customize cancel button too
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      signOut(auth)
-        .then(() => {
-          Swal.fire({
-            icon: 'success',
-            title: 'Logged out!',
-            text: 'You have been logged out successfully.',
-            showConfirmButton: false,
-            timer: 1500
-          }).then(() => {
-            window.location.href = "/index.html"; // Redirect to login page
-          });
-        })
-        .catch((error) => {
-          console.error("Logout error:", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Logout Failed',
-            text: 'Something went wrong. Please try again.',
-          });
-        });
-    }
+if (!logoutBtn) {
+} else {
+  logoutBtn.addEventListener("click", () => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to log out?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, log me out!",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#1a73e8",
+      cancelButtonColor: "#6b7280",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const email = (auth.currentUser && auth.currentUser.email) || "unknown";
+        // Try to record logout first, then proceed to sign out regardless
+        Promise.resolve(adminTrail.logLogout(email))
+          .catch((e) => {})
+          .finally(() =>
+            signOut(auth)
+              .then(() => {
+                Swal.fire({
+                  icon: "success",
+                  title: "Logged out!",
+                  text: "You have been logged out successfully.",
+                  showConfirmButton: false,
+                  timer: 1500,
+                }).then(() => {
+                  window.location.href = "/index.html"; // Redirect to login page
+                });
+              })
+              .catch((error) => {
+                Swal.fire({
+                  icon: "error",
+                  title: "Logout Failed",
+                  text: "Something went wrong. Please try again.",
+                });
+              }),
+          );
+      }
+    });
   });
-});
-
-
+}

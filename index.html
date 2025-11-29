@@ -1,73 +1,208 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>PCU Maps Login</title>
-    <link rel="stylesheet" href="assets/css/style.css" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
     />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Content Security Policy -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://*.firebasedatabase.app;
+      style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+      img-src 'self' data: https:;
+      font-src 'self' data:;
+      connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://www.gstatic.com;
+      frame-src https://*.firebasedatabase.app;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      upgrade-insecure-requests;
+    "
+    />
+
+    <title>PCU Maps - Secure Login</title>
+    <meta
+      name="description"
+      content="Philippine Christian University Campus Maps and Events - Secure Login Portal"
+    />
+
+    <link rel="stylesheet" href="assets/css/style.css" />
     <script type="module" src="../includes/login.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../includes/swal-fix.js" defer></script>
   </head>
   <body>
     <div class="background"></div>
 
     <div class="login-container">
       <div class="logo">
-        <img src="../assets/images/Pcu_maps_logo.png" alt="PCU Maps Logo" />
+        <img
+          src="../assets/images/Pcu_maps_logo.png"
+          alt="PCU Maps Logo"
+          draggable="false"
+        />
       </div>
 
       <h2>Welcome!</h2>
 
-      <form method="POST">
-        <input
-          type="email"
-          name="email"
-          id="email"
-          placeholder="email"
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          id="password"
-          placeholder="Password"
-          required
-        />
-        <button type="submit" id="submit">Login</button>
+      <form method="POST" id="loginForm" novalidate autocomplete="on">
+        <div class="form-group">
+          <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Email"
+            required
+            autocomplete="email"
+            maxlength="254"
+            aria-label="Email address"
+            aria-required="true"
+          />
+          <span class="error-message" id="emailError" role="alert"></span>
+        </div>
+
+        <div class="form-group password-group">
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            required
+            autocomplete="current-password"
+            maxlength="128"
+            aria-label="Password"
+            aria-required="true"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            id="togglePassword"
+            aria-label="Show password"
+            data-visibility="hidden"
+          >
+            <svg
+              class="toggle-password-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                class="eye-outline"
+                d="M1 12c2.7-5 7.1-8 11-8s8.3 3 11 8c-2.7 5-7.1 8-11 8S3.7 17 1 12z"
+              />
+              <circle class="eye-pupil" cx="12" cy="12" r="3.5" />
+              <line class="eye-strike" x1="3.5" y1="3.5" x2="20.5" y2="20.5" />
+            </svg>
+            <span class="visually-hidden show-text">Show password</span>
+          </button>
+          <span class="error-message" id="passwordError" role="alert"></span>
+        </div>
+
+        <button type="submit" id="submit" disabled>
+          <span class="button-text">Login</span>
+          <span class="button-loader" style="display: none"></span>
+        </button>
+
+        <div class="forgot-password-wrapper">
+          <button
+            type="button"
+            id="forgotPassword"
+            class="forgot-password"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <div
+          class="login-attempts"
+          id="loginAttempts"
+          style="display: none"
+          role="status"
+        >
+          <span class="warning-icon">⚠️</span>
+          <span id="attemptsText"></span>
+        </div>
       </form>
 
       <div class="emblems">
         <div class="emblems-container">
-          <img src="assets/images/coi.png" alt="COI" />
-          <img src="assets/images/educ.png" alt="Education" />
-          <img src="assets/images/tourism.png" alt="Tourism" />
-          <img src="assets/images/accountancy.png" alt="Accountancy" />
-          <img src="assets/images/nursing.png" alt="Nursing" />
-          <img src="assets/images/engineering.png" alt="Engineering" />
-          <img src="assets/images/crim.png" alt="Criminology" />
-          <img src="assets/images/law.png" alt="Law" />
+          <img src="assets/images/coi.png" alt="COI" draggable="false" />
+          <img src="assets/images/educ.png" alt="Education" draggable="false" />
+          <img src="assets/images/tourism.png" alt="Tourism" draggable="false" />
+          <img src="assets/images/accountancy.png" alt="Accountancy" draggable="false" />
+          <img src="assets/images/nursing.png" alt="Nursing" draggable="false" />
+          <img src="assets/images/engineering.png" alt="Engineering" draggable="false" />
+          <img src="assets/images/crim.png" alt="Criminology" draggable="false" />
+          <img src="assets/images/law.png" alt="Law" draggable="false" />
           <img
             src="assets/images/arts_and_sciences.png"
             alt="Arts and Sciences"
+            draggable="false"
           />
           <!-- Duplicate emblems to create a continuous scrolling effect -->
-          <img src="assets/images/coi.png" alt="COI" />
-          <img src="assets/images/educ.png" alt="Education" />
-          <img src="assets/images/tourism.png" alt="Tourism" />
-          <img src="assets/images/accountancy.png" alt="Accountancy" />
-          <img src="assets/images/nursing.png" alt="Nursing" />
-          <img src="assets/images/engineering.png" alt="Engineering" />
-          <img src="assets/images/crim.png" alt="Criminology" />
-          <img src="assets/images/law.png" alt="Law" />
+          <img src="assets/images/coi.png" alt="COI" draggable="false" />
+          <img src="assets/images/educ.png" alt="Education" draggable="false" />
+          <img src="assets/images/tourism.png" alt="Tourism" draggable="false" />
+          <img src="assets/images/accountancy.png" alt="Accountancy" draggable="false" />
+          <img src="assets/images/nursing.png" alt="Nursing" draggable="false" />
+          <img src="assets/images/engineering.png" alt="Engineering" draggable="false" />
+          <img src="assets/images/crim.png" alt="Criminology" draggable="false" />
+          <img src="assets/images/law.png" alt="Law" draggable="false" />
+          <img src="assets/images/coi.png" alt="COI" draggable="false" />
+          <img src="assets/images/educ.png" alt="Education" draggable="false" />
+          <img src="assets/images/tourism.png" alt="Tourism" draggable="false" />
+          <img src="assets/images/accountancy.png" alt="Accountancy" draggable="false" />
+          <img src="assets/images/nursing.png" alt="Nursing" draggable="false" />
+          <img src="assets/images/engineering.png" alt="Engineering" draggable="false" />
+          <img src="assets/images/crim.png" alt="Criminology" draggable="false" />
+          <img src="assets/images/law.png" alt="Law" draggable="false" />
+          <img src="assets/images/coi.png" alt="COI" draggable="false" />
+          <img src="assets/images/educ.png" alt="Education" draggable="false" />
+          <img src="assets/images/tourism.png" alt="Tourism" draggable="false" />
+          <img src="assets/images/accountancy.png" alt="Accountancy" draggable="false" />
+          <img src="assets/images/nursing.png" alt="Nursing" draggable="false" />
+          <img src="assets/images/engineering.png" alt="Engineering" draggable="false" />
+          <img src="assets/images/crim.png" alt="Criminology" draggable="false" />
+          <img src="assets/images/law.png" alt="Law" draggable="false" />
           <img
             src="assets/images/arts_and_sciences.png"
             alt="Arts and Sciences"
+            draggable="false"
           />
         </div>
       </div>
     </div>
+
+    <script>
+      (function () {
+        const warningKey = "pcuRegisterAccessWarning";
+        const stored = localStorage.getItem(warningKey);
+        if (stored) {
+          localStorage.removeItem(warningKey);
+          Swal.fire({
+            icon: "warning",
+            title: "Registration Notice",
+            text: stored,
+            confirmButtonText: "OK",
+            customClass: { confirmButton: "btn-blue" },
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

@@ -1,143 +1,359 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manage Events</title>
+    <title>Relocate Room</title>
+
+    <!-- Styles & Scripts -->
     <link rel="stylesheet" href="/assets/css/style5.css" />
-    <script type="module" src="/includes/logout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
     <link
       href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css"
       rel="stylesheet"
     />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-    <script src="/includes/hamburger_menu.js"></script>
+
+    <!-- Firebase & App Scripts -->
+    <script type="module" src="/includes/logout.js" defer></script>
     <script type="module" src="/includes/authguard.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script type="module" src="/includes/user.js"></script>
+    <script src="/includes/hamburger_menu.js" defer></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"
+      type="module"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js"
+      type="module"
+    ></script>
   </head>
+
   <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
+    <!-- Sidebar -->
     <div class="sidebar">
-      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+
       <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
-      <a href="/pages/create_events.html" class="nav-item">Create Events</a>
-      <a href="/pages/profile.html" class="nav-item">Account</a>
       <a href="/relocation/location.html" class="nav-item">Buildings</a>
       <a href="/relocation/relocation.html" class="nav-item active"
         >Relocation</a
       >
-      <a class="nav-item logout" alt="Logout" id="logout">Logout</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a class="nav-item logout" id="logout">Logout</a>
     </div>
 
+    <!-- Main Content -->
     <div class="main">
       <div class="topbar">
         <h1>Relocations</h1>
-          <div class="profile">
-          </div>
       </div>
 
       <div class="content">
-        <h2>Relocate Room</h2>
-        <div class="form-section">
-          <label for="sourceRoom">Select Room to Relocate:</label>
-          <select id="sourceRoom" class="select2">
-            <option value="" disabled selected hidden>Select a room</option>
-          </select>
+        <section class="relocation-header">
+          <div class="hero-text">
+            <span class="relocation-chip">Smart Relocation</span>
+            <h2>Relocate Room Descriptions</h2>
+            <p>
+              Move an existing room's details to a new location without
+              retyping. Pick a source room, choose a destination, and confirm
+              how the original room should be handled.
+            </p>
+          </div>
 
-          <label for="targetRoom">Select Target Room:</label>
-          <select id="targetRoom" class="select2">
-            <option value="" disabled selected hidden>
-              Select a target room
-            </option>
-          </select>
+          <div class="hero-metrics" role="list">
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Copy & Rename</span>
+              <span class="metric-value" aria-hidden="true">📦</span>
+            </div>
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Source Options</span>
+              <span class="metric-value" aria-hidden="true">🧭</span>
+            </div>
+            <div class="metric-card" role="listitem">
+              <span class="metric-label">Instant Sync</span>
+              <span class="metric-value" aria-hidden="true">⚡</span>
+            </div>
+          </div>
+        </section>
 
-          <button id="relocateBtn">Relocate Room</button>
-        </div>
+        <section class="relocation-form-card">
+          <header class="form-card-header">
+            <div>
+              <h3>Relocation Controls</h3>
+              <p>
+                Choose where the description originates and where it should go.
+              </p>
+            </div>
+            <div class="form-hint" role="note">
+              <span class="hint-icon" aria-hidden="true">💡</span>
+              <div>
+                <strong>Tip:</strong>
+                You can search by building, floor, or room name inside each
+                dropdown.
+              </div>
+            </div>
+          </header>
+
+          <div class="relocation-form-grid">
+            <div class="form-field-card">
+              <span class="field-chip">Step 1</span>
+              <label for="sourceRoom">Select room to relocate from</label>
+              <select id="sourceRoom" class="select2" style="width: 100%">
+                <option value="" disabled selected>Select a room</option>
+              </select>
+              <p class="field-support">
+                This is the room whose description and media will be copied.
+              </p>
+            </div>
+
+            <div class="form-field-card">
+              <span class="field-chip">Step 2</span>
+              <label for="targetRoom">Select destination room</label>
+              <select id="targetRoom" class="select2" style="width: 100%">
+                <option value="" disabled selected>Select a target room</option>
+              </select>
+              <p class="field-support">
+                Destination rooms can live under a different building or floor.
+              </p>
+            </div>
+          </div>
+
+          <button id="relocateBtn" class="relocation-action-btn">
+            <span>Relocate Description</span>
+            <span class="btn-icon" aria-hidden="true">→</span>
+          </button>
+        </section>
+
+        <section
+          class="relocation-help-card"
+          aria-labelledby="relocation-help-heading"
+        >
+          <div class="help-content">
+            <h4 id="relocation-help-heading">How relocation works</h4>
+            <ol class="relocation-steps">
+              <li>Select the room whose data you want to reuse.</li>
+              <li>
+                Choose the destination room that should receive the copied
+                details.
+              </li>
+              <li>
+                Confirm the transfer and decide whether to rename or vacate the
+                original room.
+              </li>
+            </ol>
+          </div>
+          <aside class="relocation-reminder" role="note">
+            <span class="reminder-icon" aria-hidden="true">🔁</span>
+            <div>
+              <h5>Need to undo?</h5>
+              <p>
+                Run another relocation to move the description back, or rename
+                rooms directly in the Buildings view.
+              </p>
+            </div>
+          </aside>
+        </section>
       </div>
     </div>
 
+    <!-- Relocation Logic -->
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
+      import {
+        initializeApp,
+        getApp,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
       import {
         getDatabase,
         ref,
         get,
-        update,
-      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+        set,
+        remove,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-        authDomain: "pcu-maps-5d985.firebaseapp.com",
-        databaseURL:
-          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pcu-maps-5d985",
-        storageBucket: "pcu-maps-5d985.appspot.com",
-        messagingSenderId: "922913954447",
-        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
-      };
+      // Initialize Firebase safely (avoids duplicate initialization)
+      let app;
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+app = getApp();
+      }
 
-      const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
+      const auth = getAuth(app);
 
       const sourceRoomSelect = document.getElementById("sourceRoom");
       const targetRoomSelect = document.getElementById("targetRoom");
       const relocateBtn = document.getElementById("relocateBtn");
 
-      $(document).ready(function () {
-        $(".select2").select2();
-      });
+      let isRelocating = false; // Prevent concurrent operations
 
-      async function loadData() {
-        const snapshot = await get(ref(db, "buildings"));
+      $(document).ready(() => $(".select2").select2());
+
+      // 🛡️ Input Sanitization
+      function sanitizeInput(input) {
+        if (typeof input !== "string") return "";
+        return input
+          .trim()
+          .replace(/[<>\"'&]/g, "") // Remove potentially dangerous characters
+          .substring(0, 100); // Limit length
+      }
+
+      // 🛡️ Validate Room Name
+      function validateRoomName(name) {
+        const sanitized = sanitizeInput(name);
+        if (!sanitized) {
+          throw new Error("Room name cannot be empty");
+        }
+        if (sanitized.length < 2) {
+          throw new Error("Room name must be at least 2 characters");
+        }
+        if (!/^[a-zA-Z0-9\s\-_]+$/.test(sanitized)) {
+          throw new Error(
+            "Room name can only contain letters, numbers, spaces, hyphens, and underscores",
+          );
+        }
+        return sanitized;
+      }
+
+      // 🛡️ Escape HTML to prevent XSS
+      function escapeHtml(text) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return text.replace(/[&<>"']/g, (m) => map[m]);
+      }
+
+      // 🔍 Check if room name exists in a location
+      async function roomExistsInLocation(buildingName, floorNumber, roomName) {
+        const hasFloor = floorNumber !== null && floorNumber !== undefined;
+        const basePath = hasFloor
+          ? `Buildings/${buildingName}/Floors/${floorNumber}/Rooms`
+          : `Buildings/${buildingName}/Rooms`;
+
+        const roomPath = `${basePath}/${roomName}`;
+        const snapshot = await get(ref(db, roomPath));
+        return snapshot.exists();
+      }
+
+      // 📍 Audit Trail Logging Function (Optimized)
+      async function logToAdminTrail(
+        action,
+        entityType,
+        entityId,
+        category,
+        severity,
+        details,
+        userInfo,
+      ) {
+        try {
+          const trailEntry = {
+            timestamp: new Date().toISOString(),
+            date: new Date().toISOString().split("T")[0],
+            userId: userInfo.uid,
+            userEmail: userInfo.email,
+            userName: userInfo.displayName || userInfo.email,
+            action: action,
+            entityType: entityType,
+            entityId: sanitizeInput(entityId),
+            category: category,
+            severity: severity,
+            details: details,
+            clientInfo: {
+              url: window.location.href,
+              sessionId: sessionStorage.getItem("sessionId") || "unknown",
+            },
+          };
+
+          // Generate unique entry ID
+          const entryId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          // Write directly to specific path instead of fetching all entries
+          const entryRef = ref(db, `adminTrail/${entryId}`);
+          await set(entryRef, trailEntry);
+} catch (error) {
+// Don't throw - audit logging should not block operations
+        }
+      }
+
+      // 📹 Load Rooms into dropdowns
+      async function loadRoomOptions() {
+        const snapshot = await get(ref(db, "Buildings"));
+        if (!snapshot.exists()) return;
+
         const buildings = snapshot.val();
-
         sourceRoomSelect.innerHTML = `<option value="" disabled selected>Select a room</option>`;
         targetRoomSelect.innerHTML = `<option value="" disabled selected>Select a target room</option>`;
 
-        for (const [bId, building] of Object.entries(buildings)) {
-          if (building.floors) {
-            for (const [fId, floor] of Object.entries(building.floors)) {
-              if (floor.rooms) {
-                for (const [rId, room] of Object.entries(floor.rooms)) {
-                  const description = room.description
-                    ? ` 📝 ${room.description}`
-                    : "";
-                  const label = `${building.name} - Floor ${floor.floorNumber} - ${room.roomName}${description}`;
-                  const value = JSON.stringify({
-                    bId,
-                    fId,
-                    rId,
-                    from: "floor",
-                  });
+        for (const [buildingKey, buildingData] of Object.entries(buildings)) {
+          const buildingName = buildingKey;
 
-                  [sourceRoomSelect, targetRoomSelect].forEach((select) => {
-                    const option = document.createElement("option");
-                    option.value = value;
-                    option.textContent = label;
-                    select.appendChild(option);
-                  });
-                }
-              }
+          // Rooms directly under building
+          if (buildingData.Rooms) {
+            for (const [roomKey, roomData] of Object.entries(
+              buildingData.Rooms,
+            )) {
+              // Skip vacant rooms for source selection
+              if (roomKey.toLowerCase() === "vacant") continue;
+
+              const label = `${escapeHtml(buildingName)} - ${escapeHtml(roomKey)}`;
+              const value = JSON.stringify({
+                buildingName,
+                floorNumber: null,
+                roomName: roomKey,
+              });
+              appendOptionToBothSelects(value, label);
             }
           }
 
-          if (building.rooms) {
-            for (const [rId, room] of Object.entries(building.rooms)) {
-              const description = room.description
-                ? ` 📝 ${room.description}`
-                : "";
-              const label = `${building.name} - ${room.roomName}${description}`;
-              const value = JSON.stringify({ bId, rId, from: "building" });
+          // Rooms under floors
+          if (buildingData.Floors) {
+            for (const [floorKey, floorData] of Object.entries(
+              buildingData.Floors,
+            )) {
+              if (floorData.Rooms) {
+                for (const [roomKey, roomData] of Object.entries(
+                  floorData.Rooms,
+                )) {
+                  // Skip vacant rooms for source selection
+                  if (roomKey.toLowerCase() === "vacant") continue;
 
-              [sourceRoomSelect, targetRoomSelect].forEach((select) => {
-                const option = document.createElement("option");
-                option.value = value;
-                option.textContent = label;
-                select.appendChild(option);
-              });
+                  const label = `${escapeHtml(buildingName)} - Floor ${escapeHtml(floorKey)} - ${escapeHtml(roomKey)}`;
+                  const value = JSON.stringify({
+                    buildingName,
+                    floorNumber: floorKey,
+                    roomName: roomKey,
+                  });
+                  appendOptionToBothSelects(value, label);
+                }
+              }
             }
           }
         }
@@ -145,111 +361,591 @@
         $(".select2").select2();
       }
 
+      function appendOptionToBothSelects(value, label) {
+        const opt1 = new Option(label, value, false, false);
+        const opt2 = new Option(label, value, false, false);
+        sourceRoomSelect.add(opt1);
+        targetRoomSelect.add(opt2);
+      }
+
+      // 🧩 Enhanced Relocation Logic with Security & Error Recovery
       relocateBtn.addEventListener("click", async () => {
+        // Prevent concurrent operations
+        if (isRelocating) {
+          Swal.fire(
+            "Operation in Progress",
+            "Please wait for the current relocation to complete.",
+            "info",
+          );
+          return;
+        }
+
         const sourceValue = sourceRoomSelect.value;
         const targetValue = targetRoomSelect.value;
 
-        // Check if one or both rooms are not selected
         if (!sourceValue || !targetValue) {
-          Swal.fire({
-            title: "Selection Error",
-            text: "Please select both a source and a target room.",
-            icon: "warning",
-            confirmButtonText: "Okay",
-          });
+          Swal.fire(
+            "Selection Error",
+            "Please select both a source and target room.",
+            "warning",
+          );
           return;
         }
 
-        const source = JSON.parse(sourceValue);
-        const target = JSON.parse(targetValue);
+        let source, target;
+        try {
+          source = JSON.parse(sourceValue);
+          target = JSON.parse(targetValue);
+        } catch (error) {
+          Swal.fire(
+            "Error",
+            "Invalid room selection. Please refresh and try again.",
+            "error",
+          );
+          return;
+        }
+
+        // Validate parsed data
+        if (
+          !source.buildingName ||
+          !source.roomName ||
+          !target.buildingName ||
+          !target.roomName
+        ) {
+          Swal.fire(
+            "Error",
+            "Invalid room data. Please refresh and try again.",
+            "error",
+          );
+          return;
+        }
 
         if (
-          source.bId === target.bId &&
-          source.rId === target.rId &&
-          source.fId === target.fId
+          source.buildingName === target.buildingName &&
+          source.floorNumber === target.floorNumber &&
+          source.roomName === target.roomName
         ) {
-          Swal.fire({
-            title: "Invalid Operation",
-            text: "Source and target rooms are the same.",
-            icon: "warning",
-            confirmButtonText: "Okay",
-          });
+          Swal.fire(
+            "Invalid Operation",
+            "Source and target rooms are the same.",
+            "warning",
+          );
           return;
         }
 
-        const sourcePath =
-          source.from === "floor"
-            ? `buildings/${source.bId}/floors/${source.fId}/rooms/${source.rId}`
-            : `buildings/${source.bId}/rooms/${source.rId}`;
+        // Get current user for audit trail
+        const currentUser = auth.currentUser;
 
-        const targetPath =
-          target.from === "floor"
-            ? `buildings/${target.bId}/floors/${target.fId}/rooms/${target.rId}`
-            : `buildings/${target.bId}/rooms/${target.rId}`;
+        if (!currentUser) {
+          Swal.fire(
+            "Error",
+            "User not authenticated. Cannot proceed with relocation.",
+            "error",
+          );
+          return;
+        }
 
-        const sourceSnap = await get(ref(db, sourcePath));
-        if (!sourceSnap.exists()) {
+        // Set relocating flag
+        isRelocating = true;
+        relocateBtn.disabled = true;
+        relocateBtn.innerHTML =
+          '<span>Relocating...</span><span class="btn-icon" aria-hidden="true">⏳</span>';
+
+        // 🗺️ Construct Firebase paths
+        const hasSourceFloor =
+          source.floorNumber !== null && source.floorNumber !== undefined;
+        const hasTargetFloor =
+          target.floorNumber !== null && target.floorNumber !== undefined;
+
+        const sourceBasePath = hasSourceFloor
+          ? `Buildings/${source.buildingName}/Floors/${source.floorNumber}/Rooms`
+          : `Buildings/${source.buildingName}/Rooms`;
+
+        const targetBasePath = hasTargetFloor
+          ? `Buildings/${target.buildingName}/Floors/${target.floorNumber}/Rooms`
+          : `Buildings/${target.buildingName}/Rooms`;
+
+        const sourcePath = `${sourceBasePath}/${source.roomName}`;
+        const targetPath = `${targetBasePath}/${target.roomName}`;
+        const sameBasePath = sourceBasePath === targetBasePath;
+
+        try {
+          // Verify both rooms exist and fetch data
+          const sourceSnap = await get(ref(db, sourcePath));
+          const targetSnap = await get(ref(db, targetPath));
+
+          if (!sourceSnap.exists()) {
+            Swal.fire(
+              "Error",
+              "Source room does not exist or has been deleted.",
+              "error",
+            );
+            await loadRoomOptions(); // Refresh list
+            return;
+          }
+          if (!targetSnap.exists()) {
+            Swal.fire(
+              "Error",
+              "Target room does not exist or has been deleted.",
+              "error",
+            );
+            await loadRoomOptions(); // Refresh list
+            return;
+          }
+
+          const sourceData = sourceSnap.val();
+          const targetData = targetSnap.val();
+
+          // Validate room data structure
+          if (!sourceData || typeof sourceData !== "object") {
+            Swal.fire("Error", "Source room data is corrupted.", "error");
+            return;
+          }
+
+          // Check if source room name already exists at target location
+          const sourceRoomExistsAtTarget = await roomExistsInLocation(
+            target.buildingName,
+            target.floorNumber,
+            source.roomName,
+          );
+          const targetNamePath = `${targetBasePath}/${source.roomName}`;
+          const isSameSourcePath = targetNamePath === sourcePath;
+
+          if (
+            sourceRoomExistsAtTarget &&
+            !isSameSourcePath &&
+            source.roomName !== target.roomName
+          ) {
+            Swal.fire({
+              title: "Name Conflict",
+              html: `A room named "<strong>${escapeHtml(source.roomName)}</strong>" already exists at the target location.<br><br>Cannot proceed with relocation.`,
+              icon: "error",
+            });
+            return;
+          }
+
+          // Show detailed confirmation with data preview
+          const confirmRelocation = await Swal.fire({
+            title: "Confirm Relocation",
+            html: `
+        <div style="text-align: left;">
+          <p><strong>Source:</strong><br>
+          ${escapeHtml(source.buildingName)}${
+            hasSourceFloor
+              ? " - Floor " + escapeHtml(String(source.floorNumber))
+              : ""
+          } - ${escapeHtml(source.roomName)}</p>
+          
+          <p><strong>Destination:</strong><br>
+          ${escapeHtml(target.buildingName)}${
+            hasTargetFloor
+              ? " - Floor " + escapeHtml(String(target.floorNumber))
+              : ""
+          } - ${escapeHtml(target.roomName)}</p>
+          
+          <p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+            ⚠️ The target room "<strong>${escapeHtml(target.roomName)}</strong>" will be replaced with 
+            "<strong>${escapeHtml(source.roomName)}</strong>" and all its data.
+          </p>
+        </div>
+      `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Yes, Relocate",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#1a73e8",
+            cancelButtonColor: "#6b7280",
+          });
+
+          if (!confirmRelocation.isConfirmed) {
+            // Log cancelled relocation attempt
+            await logToAdminTrail(
+              "RELOCATE_CANCELLED",
+              "ROOM",
+              source.roomName,
+              "RELOCATION",
+              "LOW",
+              {
+                sourceBuilding: source.buildingName,
+                sourceFloor: source.floorNumber || "N/A",
+                sourceRoom: source.roomName,
+                targetBuilding: target.buildingName,
+                targetFloor: target.floorNumber || "N/A",
+                targetRoom: target.roomName,
+                reason: "User cancelled operation",
+              },
+              currentUser,
+            );
+            return;
+          }
+
+          // Ask user how to handle source room BEFORE making changes
+          const { value: renameOption } = await Swal.fire({
+            title: "Source Room Handling",
+            html: `
+        <p style="text-align: left; margin-bottom: 15px;">
+          After relocation, what should happen to the original source room at 
+          <strong>${escapeHtml(source.buildingName)}${
+            hasSourceFloor
+              ? " - Floor " + escapeHtml(String(source.floorNumber))
+              : ""
+          }</strong>?
+        </p>
+        <label style="display:block; text-align:left; margin-top:10px; cursor: pointer;">
+          <input type="radio" name="sourceOption" value="vacant" checked> 
+          <strong>Mark as Vacant</strong> - Keep the room slot but mark it empty
+        </label>
+        <label style="display:block; text-align:left; margin-top:10px; cursor: pointer;">
+          <input type="radio" name="sourceOption" value="rename"> 
+          <strong>Rename</strong> - Give the source room a new name
+        </label>
+        <label style="display:block; text-align:left; margin-top:10px; cursor: pointer;">
+          <input type="radio" name="sourceOption" value="delete"> 
+          <strong>Delete</strong> - Remove the source room entirely
+        </label>
+        <input type="text" id="newSourceName" class="swal2-input" placeholder="Enter new room name" style="display:none; margin-top:10px;" maxlength="100">
+        <p id="nameWarning" style="display:none; color: #d32f2f; font-size: 0.85em; margin-top: 5px;"></p>
+      `,
+            didOpen: () => {
+              const renameRadio = document.querySelector(
+                'input[value="rename"]',
+              );
+              const vacantRadio = document.querySelector(
+                'input[value="vacant"]',
+              );
+              const deleteRadio = document.querySelector(
+                'input[value="delete"]',
+              );
+              const input = document.getElementById("newSourceName");
+              const warning = document.getElementById("nameWarning");
+
+              renameRadio.addEventListener("change", () => {
+                input.style.display = "block";
+                input.focus();
+              });
+              vacantRadio.addEventListener("change", () => {
+                input.style.display = "none";
+                warning.style.display = "none";
+              });
+              deleteRadio.addEventListener("change", () => {
+                input.style.display = "none";
+                warning.style.display = "none";
+              });
+            },
+            preConfirm: async () => {
+              const selected = document.querySelector(
+                'input[name="sourceOption"]:checked',
+              ).value;
+              const newName = document
+                .getElementById("newSourceName")
+                .value.trim();
+              const warning = document.getElementById("nameWarning");
+
+              if (selected === "rename") {
+                if (!newName) {
+                  Swal.showValidationMessage(
+                    "Please enter a name for the source room.",
+                  );
+                  return false;
+                }
+
+                // Validate room name
+                try {
+                  const validatedName = validateRoomName(newName);
+
+                  // Check if name already exists at source location
+                  const nameExists = await roomExistsInLocation(
+                    source.buildingName,
+                    source.floorNumber,
+                    validatedName,
+                  );
+
+                  if (nameExists) {
+                    warning.textContent = `A room named "${validatedName}" already exists at this location.`;
+                    warning.style.display = "block";
+                    Swal.showValidationMessage(
+                      `Room name "${validatedName}" already exists.`,
+                    );
+                    return false;
+                  }
+
+                  return { selected, newName: validatedName };
+                } catch (error) {
+                  Swal.showValidationMessage(error.message);
+                  return false;
+                }
+              }
+
+              return { selected, newName };
+            },
+            confirmButtonText: "Confirm",
+            showCancelButton: true,
+            confirmButtonColor: "#1a73e8",
+            cancelButtonColor: "#6b7280",
+            allowOutsideClick: false,
+          });
+
+          if (!renameOption) {
+            // User cancelled
+            return;
+          }
+
+          // Create backup of original data for rollback
+          const backupData = {
+            source: { path: sourcePath, data: sourceData },
+            target: { path: targetPath, data: targetData },
+          };
+
+          try {
+            const relocationTimestamp = Date.now();
+            const finalTargetKey = source.roomName;
+            const stagingKey = sameBasePath
+              ? `_relocate_${relocationTimestamp}`
+              : null;
+            const destinationPath = stagingKey
+              ? `${targetBasePath}/${stagingKey}`
+              : `${targetBasePath}/${finalTargetKey}`;
+
+            if (stagingKey) {
+              backupData.staging = { path: destinationPath };
+            }
+
+            // STEP 1: Copy source data to target location with new name
+            const relocatedData = {
+              ...sourceData,
+              buildingName: target.buildingName,
+              roomName: source.roomName,
+              lastModified: new Date().toISOString(),
+              relocatedFrom: {
+                building: source.buildingName,
+                floor: source.floorNumber || "N/A",
+                room: source.roomName,
+                date: new Date().toISOString(),
+                by: currentUser.uid,
+              },
+            };
+            if (hasTargetFloor) relocatedData.floorNumber = target.floorNumber;
+
+            // Write relocated data (use staging key when source/target share the same base path)
+            await set(ref(db, destinationPath), relocatedData);
+
+            // STEP 2: Remove old target room if different name
+            if (target.roomName !== source.roomName) {
+              await set(ref(db, targetPath), null);
+            }
+
+            // STEP 3: Handle source room based on user choice
+            if (renameOption.selected === "delete") {
+              // Delete source room
+              await set(ref(db, sourcePath), null);
+            } else if (renameOption.selected === "vacant") {
+              // Mark as vacant
+              const vacantData = {
+                roomName: "Vacant",
+                buildingName: source.buildingName,
+                status: "vacant",
+                vacatedDate: new Date().toISOString(),
+                vacatedBy: currentUser.uid,
+                previousRoom: source.roomName,
+              };
+              if (hasSourceFloor) vacantData.floorNumber = source.floorNumber;
+
+              // Handle potential Vacant room collision
+              const vacantExists = await roomExistsInLocation(
+                source.buildingName,
+                source.floorNumber,
+                "Vacant",
+              );
+
+              if (vacantExists) {
+                // Use timestamped vacant name to avoid collision
+                const vacantName = `Vacant_${Date.now()}`;
+                vacantData.roomName = vacantName;
+                await set(ref(db, sourcePath), null);
+                await set(
+                  ref(db, `${sourceBasePath}/${vacantName}`),
+                  vacantData,
+                );
+              } else {
+                await set(ref(db, sourcePath), null);
+                await set(ref(db, `${sourceBasePath}/Vacant`), vacantData);
+              }
+            } else {
+              // Rename source room
+              const renamedData = {
+                ...sourceData,
+                roomName: renameOption.newName,
+                lastModified: new Date().toISOString(),
+                renamedFrom: source.roomName,
+                renamedDate: new Date().toISOString(),
+                renamedBy: currentUser.uid,
+              };
+
+              await set(ref(db, sourcePath), null);
+              await set(
+                ref(db, `${sourceBasePath}/${renameOption.newName}`),
+                renamedData,
+              );
+            }
+
+            if (stagingKey) {
+              await set(
+                ref(db, `${targetBasePath}/${finalTargetKey}`),
+                relocatedData,
+              );
+              await set(ref(db, destinationPath), null);
+            }
+
+            // 📊 Log successful relocation to admin trail
+            let sourceAction = "";
+            if (renameOption.selected === "delete") {
+              sourceAction = "Deleted";
+            } else if (renameOption.selected === "vacant") {
+              sourceAction = "Marked as Vacant";
+            } else {
+              sourceAction = `Renamed to ${renameOption.newName}`;
+            }
+
+            await logToAdminTrail(
+              "RELOCATE",
+              "ROOM",
+              source.roomName,
+              "RELOCATION",
+              "HIGH",
+              {
+                sourceBuilding: source.buildingName,
+                sourceFloor: source.floorNumber || "N/A",
+                sourceRoom: source.roomName,
+                targetBuilding: target.buildingName,
+                targetFloor: target.floorNumber || "N/A",
+                targetRoom: target.roomName,
+                newTargetRoomName: source.roomName,
+                sourceRoomAction: sourceAction,
+                timestamp: new Date().toISOString(),
+              },
+              currentUser,
+            );
+
+            Swal.fire({
+              title: "✅ Relocation Complete",
+              html: `
+          <div style="text-align: left;">
+            <p><strong>Data relocated from:</strong><br>
+            ${escapeHtml(source.buildingName)}${
+              hasSourceFloor
+                ? " - Floor " + escapeHtml(String(source.floorNumber))
+                : ""
+            } - ${escapeHtml(source.roomName)}</p>
+            
+            <p><strong>To:</strong><br>
+            ${escapeHtml(target.buildingName)}${
+              hasTargetFloor
+                ? " - Floor " + escapeHtml(String(target.floorNumber))
+                : ""
+            } - ${escapeHtml(source.roomName)}</p>
+            
+            <p><strong>Source room:</strong> ${sourceAction}</p>
+          </div>
+        `,
+              icon: "success",
+              confirmButtonColor: "#1a73e8",
+            });
+
+            // Refresh dropdowns
+            await loadRoomOptions();
+            sourceRoomSelect.value = "";
+            targetRoomSelect.value = "";
+            $(".select2").trigger("change");
+          } catch (innerError) {
+            // Rollback attempt
+try {
+              if (backupData.staging?.path) {
+                await set(ref(db, backupData.staging.path), null);
+              }
+              await set(
+                ref(db, backupData.source.path),
+                backupData.source.data,
+              );
+              await set(
+                ref(db, backupData.target.path),
+                backupData.target.data,
+              );
+
+              Swal.fire({
+                title: "Error",
+                html: `Relocation failed and changes were rolled back.<br><br><strong>Error:</strong> ${escapeHtml(innerError.message)}`,
+                icon: "error",
+              });
+            } catch (rollbackError) {
+Swal.fire({
+                title: "Critical Error",
+                html: `Relocation failed and rollback was unsuccessful. Please contact an administrator.<br><br><strong>Error:</strong> ${escapeHtml(innerError.message)}`,
+                icon: "error",
+              });
+            }
+
+            // Log error to admin trail
+            await logToAdminTrail(
+              "RELOCATE_ERROR",
+              "ROOM",
+              source.roomName || "UNKNOWN",
+              "RELOCATION",
+              "CRITICAL",
+              {
+                sourceBuilding: source?.buildingName || "UNKNOWN",
+                sourceFloor: source?.floorNumber || "N/A",
+                sourceRoom: source?.roomName || "UNKNOWN",
+                targetBuilding: target?.buildingName || "UNKNOWN",
+                targetFloor: target?.floorNumber || "N/A",
+                targetRoom: target?.roomName || "UNKNOWN",
+                errorMessage: innerError.message,
+                errorCode: innerError.code || "UNKNOWN",
+                rollbackAttempted: true,
+              },
+              currentUser,
+            );
+          }
+        } catch (error) {
+// 📊 Log error to admin trail
+          await logToAdminTrail(
+            "RELOCATE_ERROR",
+            "ROOM",
+            source?.roomName || "UNKNOWN",
+            "RELOCATION",
+            "HIGH",
+            {
+              sourceBuilding: source?.buildingName || "UNKNOWN",
+              sourceFloor: source?.floorNumber || "N/A",
+              sourceRoom: source?.roomName || "UNKNOWN",
+              targetBuilding: target?.buildingName || "UNKNOWN",
+              targetFloor: target?.floorNumber || "N/A",
+              targetRoom: target?.roomName || "UNKNOWN",
+              errorMessage: error.message,
+              errorCode: error.code || "UNKNOWN",
+            },
+            currentUser,
+          );
+
           Swal.fire({
             title: "Error",
-            text: "Source room not found.",
+            text:
+              error.message ||
+              "An unexpected error occurred during relocation.",
             icon: "error",
           });
-          return;
+        } finally {
+          if (backupData?.staging?.path) {
+            await set(ref(db, backupData.staging.path), null);
+          }
+          // Reset button state
+          isRelocating = false;
+          relocateBtn.disabled = false;
+          relocateBtn.innerHTML =
+            '<span>Relocate Description</span><span class="btn-icon" aria-hidden="true">→</span>';
         }
-
-        const targetSnap = await get(ref(db, targetPath));
-        if (!targetSnap.exists()) {
-          Swal.fire({
-            title: "Error",
-            text: "Target room does not exist.",
-            icon: "error",
-          });
-          return;
-        }
-
-        const sourceData = sourceSnap.val();
-        const description = sourceData.description;
-
-        if (!description) {
-          Swal.fire({
-            title: "Error",
-            text: "Source room has no description.",
-            icon: "error",
-          });
-          return;
-        }
-
-        // Update target room with source description
-        await update(ref(db, targetPath), { description: description });
-
-        // Prompt for optional filler description
-        const { value: filler } = await Swal.fire({
-          title: "Add Filler Description?",
-          input: "text",
-          inputLabel: "Enter a new description for the source room (optional)",
-          inputPlaceholder: "e.g., No longer in use, empty, etc.",
-          showCancelButton: true,
-          confirmButtonText: "Save",
-          cancelButtonText: "Skip",
-        });
-
-        // If filler is provided (not undefined or empty), update source with it
-        if (filler !== undefined) {
-          const newDescription = filler.trim() === "" ? null : filler.trim();
-          await update(ref(db, sourcePath), { description: newDescription });
-        }
-
-        Swal.fire({
-          title: "Success",
-          text: "Room description relocated successfully.",
-          icon: "success",
-          confirmButtonText: "Okay",
-        });
-
-        await loadData();
       });
 
-      loadData();
+      loadRoomOptions();
     </script>
   </body>
 </html>

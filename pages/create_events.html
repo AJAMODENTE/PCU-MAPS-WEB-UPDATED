@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/assets/css/style3.css" />
     <script type="module" src="/includes/logout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
     <script src="/includes/hamburger_menu.js"></script>
     <script type="module" src="/includes/authguard.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -14,27 +15,59 @@
     <script type="module" src="/includes/user.js"></script>
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
     <div class="sidebar">
-      <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="nav-item active">
+        <span class="icon">+</span>
+        Create Events
+      </a>
+
       <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
-      <a href="/pages/create_events.html" class="nav-item active"
-        >Create Events</a
-      >
-      <a href="/pages/profile.html" class="nav-item">Account</a>
       <a href="/relocation/location.html" class="nav-item">Buildings</a>
       <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+
       <a class="nav-item logout" alt="Logout" id="logout">Logout</a>
     </div>
 
     <div class="main">
       <div class="topbar">
         <h1>Create Events</h1>
-        <div class="profile">
-        </div>
+        <div class="profile"></div>
       </div>
 
       <div class="content">
         <div class="event-form">
+          <div
+            class="events-loading-overlay"
+            id="event-loading-overlay"
+            aria-busy="true"
+          >
+            <div
+              class="events-loading-message"
+              role="status"
+              aria-live="polite"
+            >
+              <div class="events-loading-spinner" aria-hidden="true"></div>
+              <p>Loading form…</p>
+            </div>
+          </div>
           <div class="form-body">
             <div class="left-panel">
               <div class="image-placeholder">
@@ -44,29 +77,60 @@
                   id="image-input"
                   accept="image/*"
                   style="display: none"
+                  aria-label="Upload event image"
                 />
                 <div class="image-buttons">
-                  <button class="upload-btn" id="upload-btn">
+                  <button class="upload-btn" id="upload-btn" type="button">
                     Upload Image
                   </button>
-                  <button class="delete-btn" id="delete-btn">
+                  <button class="delete-btn" id="delete-btn" type="button">
                     Delete Image
                   </button>
                 </div>
               </div>
 
-              <label>Select location</label>
-              <select id="building-select">
+              <label for="building-select">Select Building</label>
+              <select
+                id="building-select"
+                aria-describedby="building-select-error"
+              >
                 <option value="">Select Building</option>
               </select>
+              <div
+                class="field-error"
+                id="building-select-error"
+                aria-live="polite"
+              ></div>
 
-              <select id="floor-select">
+              <label for="floor-select" style="display: none"
+                >Select Floor</label
+              >
+              <select
+                id="floor-select"
+                style="display: none"
+                aria-describedby="floor-select-error"
+              >
                 <option value="">Select Floor</option>
               </select>
+              <div
+                class="field-error"
+                id="floor-select-error"
+                aria-live="polite"
+              ></div>
 
-              <select id="room-select">
+              <label for="room-select" style="display: none">Select Room</label>
+              <select
+                id="room-select"
+                style="display: none"
+                aria-describedby="room-select-error"
+              >
                 <option value="">Select Room</option>
               </select>
+              <div
+                class="field-error"
+                id="room-select-error"
+                aria-live="polite"
+              ></div>
             </div>
 
             <div class="right-panel">
@@ -75,26 +139,71 @@
                 type="text"
                 id="event-title"
                 placeholder="Enter event title"
+                aria-describedby="event-title-error"
               />
+              <div
+                class="field-error"
+                id="event-title-error"
+                aria-live="polite"
+              ></div>
 
               <label for="event-description">Event Description</label>
               <textarea
                 id="event-description"
                 placeholder="Enter Event Description"
+                aria-describedby="event-description-error"
               ></textarea>
+              <div
+                class="field-error"
+                id="event-description-error"
+                aria-live="polite"
+              ></div>
 
               <label for="selected-date">Select Date</label>
-              <input type="date" id="selected-date" name="selected-date" />
+              <input
+                type="date"
+                id="selected-date"
+                name="selected-date"
+                aria-describedby="selected-date-error"
+              />
+              <div
+                class="field-error"
+                id="selected-date-error"
+                aria-live="polite"
+              ></div>
 
               <div class="time-picker">
                 <label for="start-time">Start Time:</label>
-                <input id="start-time" type="time" /><br />
+                <input
+                  id="start-time"
+                  type="time"
+                  aria-describedby="start-time-error"
+                /><br />
+                <div
+                  class="field-error"
+                  id="start-time-error"
+                  aria-live="polite"
+                ></div>
                 <label for="end-time">End Time:</label>
-                <input id="end-time" type="time" /><br />
+                <input
+                  id="end-time"
+                  type="time"
+                  aria-describedby="end-time-error"
+                /><br />
+                <div
+                  class="field-error"
+                  id="end-time-error"
+                  aria-live="polite"
+                ></div>
               </div>
 
-              <button class="create-event-btn" id="create-event-btn">
-                Create Event
+              <button
+                class="create-event-btn"
+                id="create-event-btn"
+                type="button"
+                disabled
+              >
+                Loading…
               </button>
             </div>
           </div>
@@ -103,6 +212,7 @@
     </div>
 
     <script type="module">
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
       import {
         initializeApp,
         getApp,
@@ -114,39 +224,28 @@
         push,
         get,
       } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-      import {
-        getStorage,
-        ref as sRef,
-        uploadBytes,
-        getDownloadURL,
-      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
-
-      const firebaseConfig = {
-        apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-        authDomain: "pcu-maps-5d985.firebaseapp.com",
-        databaseURL:
-          "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pcu-maps-5d985",
-        storageBucket: "pcu-maps-5d985.appspot.com",
-        messagingSenderId: "922913954447",
-        appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa",
-      };
+      import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+      import AdminTrail from "/includes/adminTrail.js";
 
       let app;
       try {
         app = initializeApp(firebaseConfig);
       } catch (error) {
-        console.log("Firebase already initialized:", error);
-        app = getApp();
+app = getApp();
       }
 
       const db = getDatabase(app);
-      const storage = getStorage(app);
-      const FALLBACK_IMAGE_URL = "/assets/images/pcuu.jpg";
+      const auth = getAuth(app);
+      const adminTrail = new AdminTrail(db, auth);
+const FALLBACK_IMAGE_URL = "/assets/images/pcuu.jpg";
+      const BUILDINGS_CACHE_KEY = "cachedBuildingDirectory";
+      const DRAFT_STORAGE_KEY = "createEventDraft";
 
       const buildingSelect = document.getElementById("building-select");
       const floorSelect = document.getElementById("floor-select");
       const roomSelect = document.getElementById("room-select");
+      const floorLabel = document.querySelector('label[for="floor-select"]');
+      const roomLabel = document.querySelector('label[for="room-select"]');
       const title = document.getElementById("event-title");
       const description = document.getElementById("event-description");
       const date = document.getElementById("selected-date");
@@ -157,306 +256,515 @@
       const previewBox = document.getElementById("preview-box");
       const uploadBtn = document.getElementById("upload-btn");
       const deleteBtn = document.getElementById("delete-btn");
+      const loadingOverlay = document.getElementById("event-loading-overlay");
 
-      // Hide floor and room selects by default
-      floorSelect.style.display = "none";
-      roomSelect.style.display = "none";
+      const BUTTON_DEFAULT_LABEL = "Create Event";
+
+      const FIELD_ERROR_ELEMENTS = {
+        [title.id]: document.getElementById("event-title-error"),
+        [description.id]: document.getElementById("event-description-error"),
+        [date.id]: document.getElementById("selected-date-error"),
+        [startTime.id]: document.getElementById("start-time-error"),
+        [endTime.id]: document.getElementById("end-time-error"),
+        [buildingSelect.id]: document.getElementById("building-select-error"),
+        [floorSelect.id]: document.getElementById("floor-select-error"),
+        [roomSelect.id]: document.getElementById("room-select-error"),
+      };
+
+      const TRACKED_INPUTS = [
+        title,
+        description,
+        date,
+        startTime,
+        endTime,
+        buildingSelect,
+        floorSelect,
+        roomSelect,
+      ];
+
+      let buildingCache = null;
+      let isApplyingExternalData = false;
+      let loadedEventContext = null;
+      let isSubmitting = false; // Prevent concurrent submissions
+      let uploadedImageData = null; // Store validated image
 
       previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
       previewBox.textContent = "";
 
-      // Load buildings
-      const buildingsRef = ref(db, "buildings");
-      get(buildingsRef)
-        .then((snapshot) => {
-          const buildings = snapshot.val();
-          if (buildings) {
-            Object.keys(buildings).forEach((buildingId) => {
-              const building = buildings[buildingId];
-              const option = document.createElement("option");
-              option.value = buildingId;
-              option.textContent = building.name;
-              buildingSelect.appendChild(option);
-            });
-          }
-        })
-        .catch((error) => {
-          console.error("Error loading buildings:", error);
-          Swal.fire({
-            title: "Error",
-            text: "Failed to load buildings. Please refresh the page.",
-            icon: "error",
-          });
-        });
+      // 🛡️ Security Functions
+      function sanitizeInput(input) {
+        if (typeof input !== "string") return "";
+        return input
+          .trim()
+          .replace(/[<>\"']/g, "") // Remove dangerous characters
+          .substring(0, 1000); // Limit length
+      }
 
-      buildingSelect.addEventListener("change", async (event) => {
-        const selectedBuildingId = event.target.value;
+      function escapeHtml(text) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return String(text || "").replace(/[&<>"']/g, (m) => map[m]);
+      }
+
+      function validateEventTitle(title) {
+        const sanitized = sanitizeInput(title);
+        if (!sanitized || sanitized.length < 3) {
+          throw new Error("Event title must be at least 3 characters");
+        }
+        if (sanitized.length > 200) {
+          throw new Error("Event title must not exceed 200 characters");
+        }
+        if (!/^[a-zA-Z0-9\s\-_.,!?&():]+$/.test(sanitized)) {
+          throw new Error("Event title contains invalid characters");
+        }
+        return sanitized;
+      }
+
+      function validateEventDescription(desc) {
+        const sanitized = sanitizeInput(desc);
+        if (!sanitized || sanitized.length < 10) {
+          throw new Error("Event description must be at least 10 characters");
+        }
+        if (sanitized.length > 5000) {
+          throw new Error("Event description must not exceed 5000 characters");
+        }
+        return sanitized;
+      }
+
+      function validateDate(dateStr) {
+        if (!dateStr) throw new Error("Date is required");
+        const selectedDate = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (isNaN(selectedDate.getTime())) {
+          throw new Error("Invalid date format");
+        }
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+          throw new Error("Date cannot be in the past");
+        }
+
+        // Allow events up to 5 years in the future
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 5);
+
+        if (selectedDate > maxDate) {
+          throw new Error("Date cannot be more than 5 years in the future");
+        }
+
+        return dateStr;
+      }
+
+      function validateTime(timeStr, fieldName) {
+        if (!timeStr) throw new Error(`${fieldName} is required`);
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        if (!timeRegex.test(timeStr)) {
+          throw new Error(`${fieldName} has invalid format`);
+        }
+        return timeStr;
+      }
+
+      function validateTimeRange(startTime, endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+
+        if (end <= start) {
+          throw new Error("End time must be after start time");
+        }
+
+        const diffMinutes = (end - start) / 60000;
+        if (diffMinutes < 15) {
+          throw new Error("Event must be at least 15 minutes long");
+        }
+
+        if (diffMinutes > 1440) {
+          // 24 hours
+          throw new Error("Event cannot exceed 24 hours");
+        }
+
+        return true;
+      }
+
+      async function validateAndProcessImage(file) {
+        if (!file) return null;
+
+        // File size check (2MB limit)
+        if (file.size > 2 * 1024 * 1024) {
+          throw new Error("Image size must be less than 2MB");
+        }
+
+        // File type check
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+          throw new Error("Only JPEG, PNG, GIF, and WebP images are allowed");
+        }
+
+        // Validate file extension matches MIME type
+        const extension = file.name.split(".").pop().toLowerCase();
+        const validExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+        if (!validExtensions.includes(extension)) {
+          throw new Error("Invalid file extension");
+        }
+
+        // Read and validate image
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onerror = () => reject(new Error("Failed to read image file"));
+
+          reader.onload = (e) => {
+            const img = new Image();
+
+            img.onerror = () =>
+              reject(new Error("Invalid or corrupted image file"));
+
+            img.onload = () => {
+              // Validate image dimensions
+              if (img.width < 50 || img.height < 50) {
+                reject(new Error("Image must be at least 50x50 pixels"));
+                return;
+              }
+
+              if (img.width > 4000 || img.height > 4000) {
+                reject(new Error("Image dimensions too large (max 4000x4000)"));
+                return;
+              }
+
+              // Return the validated data URL
+              resolve(e.target.result);
+            };
+
+            img.src = e.target.result;
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function showLoadingOverlay(message = "Loading…") {
+        if (!loadingOverlay) return;
+        const textEl = loadingOverlay.querySelector("p");
+        if (textEl) textEl.textContent = message;
+        loadingOverlay.style.display = "flex";
+        loadingOverlay.setAttribute("aria-busy", "true");
+      }
+
+      function hideLoadingOverlay() {
+        if (!loadingOverlay) return;
+        loadingOverlay.style.display = "none";
+        loadingOverlay.setAttribute("aria-busy", "false");
+      }
+
+      function clearFieldError(field) {
+        if (!field) return;
+        field.classList.remove("building-error");
+        field.removeAttribute("aria-invalid");
+        const errorEl = FIELD_ERROR_ELEMENTS[field.id];
+        if (errorEl) {
+          errorEl.textContent = "";
+          errorEl.style.display = "none";
+        }
+      }
+
+      function showFieldError(field, message) {
+        if (!field) return;
+        field.classList.add("building-error");
+        field.setAttribute("aria-invalid", "true");
+        const errorEl = FIELD_ERROR_ELEMENTS[field.id];
+        if (errorEl) {
+          errorEl.textContent = message;
+          errorEl.style.display = "block";
+        }
+      }
+
+      function clearAllFieldErrors() {
+        TRACKED_INPUTS.forEach(clearFieldError);
+      }
+
+      function collectDraftPayload() {
+        return {
+          event_title: title.value ?? "",
+          event_description: description.value ?? "",
+          selected_date: date.value ?? "",
+          start_time: startTime.value ?? "",
+          end_time: endTime.value ?? "",
+          building_id: buildingSelect.value ?? "",
+          floor_id:
+            floorSelect.style.display === "none"
+              ? ""
+              : (floorSelect.value ?? ""),
+          room_id:
+            roomSelect.style.display === "none" ? "" : (roomSelect.value ?? ""),
+          timestamp: Date.now(),
+        };
+      }
+
+      function saveDraft() {
+        if (!DRAFT_STORAGE_KEY || isApplyingExternalData) return;
+        try {
+          localStorage.setItem(
+            DRAFT_STORAGE_KEY,
+            JSON.stringify(collectDraftPayload()),
+          );
+        } catch (error) {
+}
+      }
+
+      function clearDraft() {
+        if (!DRAFT_STORAGE_KEY) return;
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+
+      async function populateBuildingDependencies(buildingId) {
         floorSelect.innerHTML = '<option value="">Select Floor</option>';
         roomSelect.innerHTML = '<option value="">Select Room</option>';
         floorSelect.style.display = "none";
         roomSelect.style.display = "none";
+        if (floorLabel) floorLabel.style.display = "none";
+        if (roomLabel) roomLabel.style.display = "none";
+        clearFieldError(floorSelect);
+        clearFieldError(roomSelect);
 
-        if (!selectedBuildingId) return;
+        if (!buildingId) return;
 
         try {
-          const floorSnap = await get(
-            ref(db, `buildings/${selectedBuildingId}/floors`)
-          );
-          const buildingRoomSnap = await get(
-            ref(db, `buildings/${selectedBuildingId}/rooms`)
-          );
+          const floorsRef = ref(db, `Buildings/${buildingId}/Floors`);
+          const roomsRef = ref(db, `Buildings/${buildingId}/Rooms`);
+          const [floorsSnap, roomsSnap] = await Promise.all([
+            get(floorsRef),
+            get(roomsRef),
+          ]);
 
-          if (floorSnap.exists()) {
-            const floors = floorSnap.val();
+          if (floorsSnap.exists()) {
             floorSelect.style.display = "block";
-            Object.keys(floors).forEach((floorId) => {
-              const floor = floors[floorId];
+            if (floorLabel) floorLabel.style.display = "block";
+            const floors = floorsSnap.val();
+            Object.entries(floors).forEach(([floorId, floorData]) => {
+              if (floorId === "placeholder") return;
               const option = document.createElement("option");
+              const label = floorData.floorNumber || floorData.floor || floorId;
               option.value = floorId;
-              option.textContent = `Floor ${floor.floorNumber}`;
+              option.textContent = `Floor ${label}`;
               floorSelect.appendChild(option);
             });
           }
 
-          if (buildingRoomSnap.exists()) {
-            const rooms = buildingRoomSnap.val();
+          if (roomsSnap.exists()) {
             roomSelect.style.display = "block";
-            Object.keys(rooms).forEach((roomId) => {
-              const room = rooms[roomId];
+            if (roomLabel) roomLabel.style.display = "block";
+            const rooms = roomsSnap.val();
+            Object.entries(rooms).forEach(([roomId, roomData]) => {
               const option = document.createElement("option");
               option.value = roomId;
-              option.textContent = room.roomName;
+              option.textContent = roomData.roomName || roomId;
               roomSelect.appendChild(option);
             });
           }
         } catch (error) {
-          console.error("Error loading floors/rooms:", error);
-        }
-      });
+}
+      }
 
-      floorSelect.addEventListener("change", async (event) => {
-        const selectedBuildingId = buildingSelect.value;
-        const selectedFloorId = event.target.value;
+      async function loadRoomsForFloor(buildingId, floorId) {
         roomSelect.innerHTML = '<option value="">Select Room</option>';
         roomSelect.style.display = "none";
+        if (roomLabel) roomLabel.style.display = "none";
+        clearFieldError(roomSelect);
 
-        if (!selectedFloorId) return;
+        if (!buildingId || !floorId) return;
 
         try {
-          const roomSnap = await get(
-            ref(
-              db,
-              `buildings/${selectedBuildingId}/floors/${selectedFloorId}/rooms`
-            )
+          const roomsSnap = await get(
+            ref(db, `Buildings/${buildingId}/Floors/${floorId}/Rooms`),
           );
-          if (roomSnap.exists()) {
-            const rooms = roomSnap.val();
+          if (roomsSnap.exists()) {
             roomSelect.style.display = "block";
-            Object.keys(rooms).forEach((roomId) => {
-              const room = rooms[roomId];
+            if (roomLabel) roomLabel.style.display = "block";
+            const rooms = roomsSnap.val();
+            Object.entries(rooms).forEach(([roomId, roomData]) => {
               const option = document.createElement("option");
               option.value = roomId;
-              option.textContent = room.roomName;
+              option.textContent = roomData.roomName || roomId;
               roomSelect.appendChild(option);
             });
           }
         } catch (error) {
-          console.error("Error loading rooms:", error);
+}
+      }
+
+      async function applyDraft(draft) {
+        if (!draft) return;
+        isApplyingExternalData = true;
+        try {
+          title.value = draft.event_title || "";
+          description.value = draft.event_description || "";
+          date.value = draft.selected_date || "";
+          startTime.value = draft.start_time || "";
+          endTime.value = draft.end_time || "";
+
+          buildingSelect.value = draft.building_id || "";
+          await populateBuildingDependencies(buildingSelect.value);
+
+          if (draft.floor_id) {
+            floorSelect.value = draft.floor_id;
+            await loadRoomsForFloor(buildingSelect.value, draft.floor_id);
+          }
+
+          if (
+            draft.room_id &&
+            Array.from(roomSelect.options).some(
+              (opt) => opt.value === draft.room_id,
+            )
+          ) {
+            roomSelect.value = draft.room_id;
+            if (roomLabel) roomLabel.style.display = roomSelect.style.display;
+          }
+        } finally {
+          isApplyingExternalData = false;
         }
-      });
+      }
 
-      button.addEventListener("click", async () => {
-        const selectedBuilding = buildingSelect.value;
-        const selectedFloor =
-          floorSelect.style.display !== "none" ? floorSelect.value : "";
-        const selectedRoom =
-          roomSelect.style.display !== "none" ? roomSelect.value : "";
+      function hasDraftDifferences(draft, baseline = {}) {
+        if (!draft) return false;
+        const keys = [
+          "event_title",
+          "event_description",
+          "selected_date",
+          "start_time",
+          "end_time",
+          "building_id",
+          "floor_id",
+          "room_id",
+        ];
+        return keys.some((key) => (draft[key] || "") !== (baseline[key] || ""));
+      }
 
-        if (
-          !title.value ||
-          !date.value ||
-          !startTime.value ||
-          !endTime.value ||
-          !selectedBuilding ||
-          !description.value
-        ) {
-          Swal.fire({
-            title: "Missing Information!",
-            text: "Please fill in all required fields.",
-            icon: "warning",
-            confirmButtonText: "OK",
-          });
+      function maybeRestoreDraft() {
+        if (!DRAFT_STORAGE_KEY) return;
+        let raw = null;
+        try {
+          raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        } catch (error) {
+}
+        if (!raw) return;
+
+        let draft;
+        try {
+          draft = JSON.parse(raw);
+        } catch (error) {
+localStorage.removeItem(DRAFT_STORAGE_KEY);
           return;
         }
 
-        // Show loading state
-        button.disabled = true;
-        button.textContent = "Creating...";
-        let imageWasUploaded = false;
+        if (!hasDraftDifferences(draft, loadedEventContext)) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
 
-        try {
-          let readableLocation = "";
-          const buildingSnap = await get(
-            ref(db, `buildings/${selectedBuilding}`)
-          );
-          const buildingName = buildingSnap.val()?.name || selectedBuilding;
-
-          if (selectedFloor && selectedRoom) {
-            const floorSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
-            );
-            const roomSnap = await get(
-              ref(
-                db,
-                `buildings/${selectedBuilding}/floors/${selectedFloor}/rooms/${selectedRoom}`
-              )
-            );
-            readableLocation = `${buildingName} - Floor ${
-              floorSnap.val()?.floorNumber
-            } - ${roomSnap.val()?.roomName}`;
-          } else if (selectedFloor) {
-            const floorSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/floors/${selectedFloor}`)
-            );
-            readableLocation = `${buildingName} - Floor ${
-              floorSnap.val()?.floorNumber
-            }`;
-          } else if (selectedRoom) {
-            const roomSnap = await get(
-              ref(db, `buildings/${selectedBuilding}/rooms/${selectedRoom}`)
-            );
-            readableLocation = `${buildingName} - ${roomSnap.val()?.roomName}`;
+        Swal.fire({
+          title: "Restore unsaved event?",
+          text: "We found a saved draft for this form. Would you like to restore it?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Restore",
+          cancelButtonText: "Discard",
+          reverseButtons: true,
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await applyDraft(draft);
           } else {
-            readableLocation = buildingName;
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
           }
+        });
+      }
 
-          // Create the event reference first
-          const newEventRef = push(ref(db, "events"));
-          const newEventKey = newEventRef.key;
-          let imageURL = FALLBACK_IMAGE_URL;
-
-          // Handle image upload
-          const file = imageInput.files[0];
-          if (file) {
-            try {
-              // Create a Base64 representation of the image
-              const base64Image = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-              });
-
-              // Store image directly in Firebase Database instead of Storage
-              // This bypasses CORS issues for development
-              // Note: This approach is only recommended for development
-              // For production, you should configure CORS on Firebase Storage
-
-              // Save the image data alongside the event
-              imageURL = base64Image;
-              imageWasUploaded = true;
-              console.log("Image converted to Base64 for storage in database");
-
-              /* Original Storage approach - commented out due to CORS issues
-            console.log("Uploading image:", file.name);
-            const storageRef = sRef(storage, `event-images/${newEventKey}/${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            imageURL = await getDownloadURL(snapshot.ref);
-            console.log("Image uploaded successfully:", imageURL);
-            */
-            } catch (err) {
-              console.error("Image processing failed:", err);
-              Swal.fire({
-                title: "Image Upload Failed",
-                text: "Event will be created without the custom image.",
-                icon: "warning",
-                timer: 3000,
-              });
-            }
-          }
-
-          // Create event data
-          const eventData = {
-            event_title: title.value,
-            event_description: description.value,
-            selected_date: date.value,
-            start_time: startTime.value,
-            end_time: endTime.value,
-            location: readableLocation,
-            image_url: imageURL,
-            has_base64_image: imageWasUploaded, // Flag to indicate if we're using a base64 image
-            created_at: new Date().toISOString(),
-          };
-
-          console.log("Saving event with data:", {
-            ...eventData,
-            image_url: imageWasUploaded
-              ? "BASE64_IMAGE_DATA (not shown for brevity)"
-              : eventData.image_url,
-          });
-
-          // Save to database
-          await set(newEventRef, eventData);
-
-          // Show success message
-          Swal.fire({
-            title: "Event Created!",
-            icon: "success",
-            showConfirmButton: false,
-            timer: 1500,
-            timerProgressBar: true,
-          });
-
-          // Reset form
-          title.value = "";
-          description.value = "";
-          date.value = "";
-          startTime.value = "";
-          endTime.value = "";
-          imageInput.value = "";
-          buildingSelect.value = "";
-          floorSelect.innerHTML = '<option value="">Select Floor</option>';
-          roomSelect.innerHTML = '<option value="">Select Room</option>';
-          floorSelect.style.display = "none";
-          roomSelect.style.display = "none";
-          previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
-          previewBox.textContent = "";
-        } catch (error) {
-          console.error("Event creation error:", error);
-          Swal.fire({
-            title: "Error!",
-            text: "Failed to create event: " + error.message,
-            icon: "error",
-            confirmButtonText: "OK",
-          });
-        } finally {
-          // Reset button state
-          button.disabled = false;
-          button.textContent = "Create Event";
+      TRACKED_INPUTS.forEach((inputEl) => {
+        if (!inputEl) return;
+        const handler = () => {
+          clearFieldError(inputEl);
+          saveDraft();
+        };
+        const eventName = inputEl.tagName === "SELECT" ? "change" : "input";
+        inputEl.addEventListener(eventName, handler);
+        if (eventName !== "change") {
+          inputEl.addEventListener("change", handler);
         }
       });
 
-      imageInput.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          // File size validation (max 2MB)
-          if (file.size > 2 * 1024 * 1024) {
-            Swal.fire({
-              title: "File too large",
-              text: "Please select an image smaller than 2MB",
-              icon: "warning",
-            });
-            imageInput.value = "";
-            return;
+      async function loadBuildings() {
+        showLoadingOverlay("Loading buildings…");
+        let buildings = null;
+
+        try {
+          try {
+            const cached = sessionStorage.getItem(BUILDINGS_CACHE_KEY);
+            if (cached) {
+              buildings = JSON.parse(cached);
+            }
+          } catch (error) {
+sessionStorage.removeItem(BUILDINGS_CACHE_KEY);
           }
 
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            previewBox.style.backgroundImage = `url(${e.target.result})`;
-            previewBox.textContent = "";
-          };
-          reader.readAsDataURL(file);
+          if (!buildings) {
+            const snapshot = await get(ref(db, "Buildings"));
+            buildings = snapshot.val() || {};
+            try {
+              sessionStorage.setItem(
+                BUILDINGS_CACHE_KEY,
+                JSON.stringify(buildings),
+              );
+            } catch (error) {
+}
+          }
+
+          buildingCache = buildings;
+
+          buildingSelect.innerHTML =
+            '<option value="">Select Building</option>';
+          Object.entries(buildings).forEach(([buildingId, buildingData]) => {
+            const option = document.createElement("option");
+            const name =
+              buildingData.buildingName || buildingData.name || buildingId;
+            option.value = buildingId;
+            option.textContent = name;
+            buildingSelect.appendChild(option);
+          });
+        } catch (error) {
+Swal.fire(
+            "Error",
+            "Failed to load buildings. Please refresh the page.",
+            "error",
+          );
+        } finally {
+          hideLoadingOverlay();
+          button.disabled = false;
+          button.textContent = BUTTON_DEFAULT_LABEL;
         }
+      }
+
+      buildingSelect.addEventListener("change", async (event) => {
+        clearFieldError(buildingSelect);
+        await populateBuildingDependencies(event.target.value);
+        saveDraft();
+      });
+
+      floorSelect.addEventListener("change", async (event) => {
+        clearFieldError(floorSelect);
+        await loadRoomsForFloor(buildingSelect.value, event.target.value);
+        saveDraft();
       });
 
       uploadBtn.addEventListener("click", () => {
@@ -465,9 +773,328 @@
 
       deleteBtn.addEventListener("click", () => {
         imageInput.value = "";
+        uploadedImageData = null;
         previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
         previewBox.textContent = "";
+
+        const toast = Swal.mixin({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
+        toast.fire({
+          icon: "info",
+          title: "Image removed",
+        });
       });
+
+      imageInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          uploadedImageData = null;
+          return;
+        }
+
+        try {
+          showLoadingOverlay("Validating image...");
+
+          const validatedDataURL = await validateAndProcessImage(file);
+          uploadedImageData = validatedDataURL;
+
+          previewBox.style.backgroundImage = `url(${validatedDataURL})`;
+          previewBox.textContent = "";
+
+          hideLoadingOverlay();
+
+          // Show success feedback
+          const toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+          });
+
+          toast.fire({
+            icon: "success",
+            title: "Image uploaded successfully",
+          });
+        } catch (error) {
+// Reset input and preview
+          imageInput.value = "";
+          uploadedImageData = null;
+          previewBox.style.backgroundImage = `url(${FALLBACK_IMAGE_URL})`;
+          previewBox.textContent = "";
+
+          hideLoadingOverlay();
+
+          Swal.fire({
+            title: "Image Upload Failed",
+            text: error.message || "Please select a valid image file.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        }
+      });
+
+      function validateForm() {
+        clearAllFieldErrors();
+        const errors = [];
+
+        // Validate title with security checks
+        try {
+          validateEventTitle(title.value);
+        } catch (error) {
+          errors.push({ field: title, message: error.message });
+        }
+
+        // Validate description with security checks
+        try {
+          validateEventDescription(description.value);
+        } catch (error) {
+          errors.push({ field: description, message: error.message });
+        }
+
+        // Validate date
+        try {
+          validateDate(date.value);
+        } catch (error) {
+          errors.push({ field: date, message: error.message });
+        }
+
+        // Validate start time
+        try {
+          validateTime(startTime.value, "Start time");
+        } catch (error) {
+          errors.push({ field: startTime, message: error.message });
+        }
+
+        // Validate end time
+        try {
+          validateTime(endTime.value, "End time");
+        } catch (error) {
+          errors.push({ field: endTime, message: error.message });
+        }
+
+        // Validate time range
+        if (startTime.value && endTime.value) {
+          try {
+            validateTimeRange(startTime.value, endTime.value);
+          } catch (error) {
+            errors.push({ field: endTime, message: error.message });
+          }
+        }
+
+        // Validate building selection
+        if (!buildingSelect.value) {
+          errors.push({
+            field: buildingSelect,
+            message: "Choose a building for the event.",
+          });
+        }
+
+        // Validate floor if visible
+        const floorVisible =
+          floorSelect.style.display !== "none" &&
+          floorSelect.options.length > 1;
+        if (floorVisible && !floorSelect.value) {
+          errors.push({
+            field: floorSelect,
+            message: "Choose a floor for the event.",
+          });
+        }
+
+        // Validate room if visible
+        const roomVisible =
+          roomSelect.style.display !== "none" && roomSelect.options.length > 1;
+        if (roomVisible && !roomSelect.value) {
+          errors.push({
+            field: roomSelect,
+            message: "Choose a room for the event.",
+          });
+        }
+
+        if (errors.length) {
+          errors.forEach(({ field, message }) =>
+            showFieldError(field, message),
+          );
+          const firstField = errors[0]?.field;
+          if (firstField) firstField.focus();
+          Swal.fire({
+            icon: "error",
+            title: "Please review the highlighted fields.",
+            html: `Found ${errors.length} error${errors.length > 1 ? "s" : ""} in the form.`,
+            confirmButtonText: "Got it",
+          });
+          return false;
+        }
+
+        return true;
+      }
+
+      function buildLocationString() {
+        const buildingName = buildingSelect.value
+          ? buildingSelect.options[buildingSelect.selectedIndex].textContent
+          : "";
+        const floorText = floorSelect.value
+          ? floorSelect.options[floorSelect.selectedIndex].textContent
+          : "";
+        const roomName = roomSelect.value
+          ? roomSelect.options[roomSelect.selectedIndex].textContent
+          : "";
+
+        return [buildingName, floorText, roomName]
+          .filter((segment) => segment && segment.trim().length > 0)
+          .join(" - ");
+      }
+
+      button.addEventListener("click", async () => {
+        // Prevent concurrent submissions
+        if (isSubmitting) {
+          Swal.fire({
+            title: "Please Wait",
+            text: "Event creation is already in progress.",
+            icon: "info",
+          });
+          return;
+        }
+
+        if (!validateForm()) return;
+
+        isSubmitting = true;
+        button.disabled = true;
+        button.textContent = "Creating…";
+
+        let imageURL = FALLBACK_IMAGE_URL;
+        let imageWasUploaded = false;
+
+        try {
+          // Use pre-validated image data
+          if (uploadedImageData) {
+            imageURL = uploadedImageData;
+            imageWasUploaded = true;
+          } else if (imageInput.files[0]) {
+            // Fallback validation if uploadedImageData is missing
+            try {
+              showLoadingOverlay("Processing image...");
+              imageURL = await validateAndProcessImage(imageInput.files[0]);
+              imageWasUploaded = true;
+              hideLoadingOverlay();
+            } catch (error) {
+hideLoadingOverlay();
+
+              const result = await Swal.fire({
+                title: "Image Upload Failed",
+                text: "Continue creating event without image?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, continue",
+                cancelButtonText: "Cancel",
+              });
+
+              if (!result.isConfirmed) {
+                throw new Error("Event creation cancelled by user");
+              }
+
+              imageURL = FALLBACK_IMAGE_URL;
+              imageWasUploaded = false;
+            }
+          }
+
+          showLoadingOverlay("Creating event...");
+
+          // Sanitize and validate all inputs
+          const sanitizedTitle = validateEventTitle(title.value);
+          const sanitizedDescription = validateEventDescription(
+            description.value,
+          );
+          const validatedDate = validateDate(date.value);
+          const validatedStartTime = validateTime(
+            startTime.value,
+            "Start time",
+          );
+          const validatedEndTime = validateTime(endTime.value, "End time");
+          validateTimeRange(validatedStartTime, validatedEndTime);
+
+          const locationString = buildLocationString();
+
+          // Build event data with security measures
+          const eventData = {
+            event_title: sanitizedTitle,
+            event_description: sanitizedDescription,
+            selected_date: validatedDate,
+            start_time: validatedStartTime,
+            end_time: validatedEndTime,
+            location: escapeHtml(locationString),
+            image_url: imageURL,
+            has_base64_image: imageWasUploaded,
+            created_at: new Date().toISOString(),
+            created_by: auth.currentUser?.uid || "unknown",
+            last_modified: new Date().toISOString(),
+            version: 1,
+          };
+
+          // Create event in database
+          const newEventRef = push(ref(db, "events"));
+          await set(newEventRef, eventData);
+
+          // Log to admin trail
+          adminTrail.logEventCreate(newEventRef.key, eventData).catch((e) => {});
+
+          hideLoadingOverlay();
+          clearDraft();
+
+          loadedEventContext = {
+            ...eventData,
+            building_id: buildingSelect.value || "",
+            floor_id:
+              floorSelect.style.display === "none"
+                ? ""
+                : floorSelect.value || "",
+            room_id:
+              roomSelect.style.display === "none" ? "" : roomSelect.value || "",
+          };
+
+          await Swal.fire({
+            title: "✅ Event Created!",
+            html: `<strong>${escapeHtml(sanitizedTitle)}</strong> has been created successfully.`,
+            icon: "success",
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+          });
+
+          window.location.href = "/pages/manage_events.html";
+        } catch (error) {
+hideLoadingOverlay();
+
+          Swal.fire({
+            title: "Error",
+            text: error.message || "Failed to create event. Please try again.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        } finally {
+          isSubmitting = false;
+          button.disabled = false;
+          button.textContent = BUTTON_DEFAULT_LABEL;
+        }
+      });
+
+      await loadBuildings();
+      loadedEventContext = {
+        event_title: "",
+        event_description: "",
+        selected_date: "",
+        start_time: "",
+        end_time: "",
+        building_id: "",
+        floor_id: "",
+        room_id: "",
+      };
+      maybeRestoreDraft();
     </script>
   </body>
 </html>

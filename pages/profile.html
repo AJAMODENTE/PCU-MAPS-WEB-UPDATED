@@ -1,144 +1,814 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Account Settings</title>
-  <link rel="stylesheet" href="/assets/css/profile.css" />
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script type="module" src="/includes/authguard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCq8eXVoQtt_l9EFkIhYxzoUvW7HOIvZzk",
-      authDomain: "pcu-maps-5d985.firebaseapp.com",
-      databaseURL: "https://pcu-maps-5d985-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "pcu-maps-5d985",
-      storageBucket: "pcu-maps-5d985.firebasestorage.app",
-      messagingSenderId: "922913954447",
-      appId: "1:922913954447:web:c9f2db5e796c56fb7b2efa"
-    };
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Settings</title>
+    <link rel="stylesheet" href="/assets/css/style1.css" />
+    <link rel="stylesheet" href="/assets/css/admin-trail.css" />
+    <link rel="stylesheet" href="/assets/css/profile.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script type="module" src="/includes/authguard.js" defer></script>
+    <script type="module" src="/includes/hamburger_menu.js" defer></script>
+    <script type="module">
+      import { firebaseConfig } from "/includes/firebaseConfig.js";
+      import {
+        initializeApp,
+        getApp,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        updatePassword,
+        EmailAuthProvider,
+        reauthenticateWithCredential,
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+      import { getDatabase } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+      import AdminTrail from "/includes/adminTrail.js";
 
-    firebase.initializeApp(firebaseConfig);
-  </script>
-</head>
-<body>
-  <div class="profile-container">
-    <div class="profile-card">
-      <h2>Account Settings</h2>
-      <form id="accountSettingsForm">
-        <label for="email">Email:</label>
-        <input type="email" id="email" readonly />
+      let app;
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (e) {
+        app = getApp();
+      }
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+      const trail = new AdminTrail(db, auth);
 
-        <label for="newPassword">New Password:</label>
-        <input type="password" id="newPassword" placeholder="Enter new password" />
+      // Security and operation state flags
+      let isUpdatingPassword = false;
 
-        <label for="confirmPassword">Confirm Password:</label>
-        <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+      // Security Functions
+      function sanitizeInput(input) {
+        if (!input) return "";
+        return String(input)
+          .replace(/[<>"'&]/g, "")
+          .trim()
+          .slice(0, 1000);
+      }
 
-        <button type="button" id="saveChangesBtn">Save Changes</button>
-       <button type="button" id="homeBtn">✕</button>
+      function escapeHtml(unsafe) {
+        if (!unsafe) return "";
+        return String(unsafe)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
-      </form>
+      function scorePassword(pw) {
+        if (!pw) return 0;
+        let score = 0;
+
+        // Length scoring (more granular)
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+
+        // Character type scoring
+        const hasUpper = /[A-Z]/.test(pw);
+        const hasLower = /[a-z]/.test(pw);
+        const hasNumber = /[0-9]/.test(pw);
+        const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+
+        if (hasUpper) score++;
+        if (hasLower) score++;
+        if (hasNumber) score++;
+        if (hasSpecial) score++;
+
+        // Complexity bonus
+        const typeCount = [hasUpper, hasLower, hasNumber, hasSpecial].filter(
+          Boolean,
+        ).length;
+        if (typeCount >= 3 && pw.length >= 12) score++;
+
+        // Penalty for common patterns
+        const weakPatterns = [
+          /^(.)\1+$/, // Repeated characters
+          /^(012|123|234|345|456|567|678|789|890)+/, // Sequential numbers
+          /password|qwerty|abc123|letmein/i, // Common words
+        ];
+
+        for (const pattern of weakPatterns) {
+          if (pattern.test(pw)) {
+            score = Math.max(0, score - 2);
+            break;
+          }
+        }
+
+        return Math.min(Math.max(score, 0), 4);
+      }
+
+      function strengthLabel(score) {
+        const labels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
+        return labels[score] || "-";
+      }
+
+      function validatePassword(password) {
+        const errors = [];
+
+        if (!password || typeof password !== "string") {
+          return { valid: false, errors: ["Password is required"] };
+        }
+
+        const trimmed = password.trim();
+
+        // Length check
+        if (trimmed.length < 8) {
+          errors.push("Password must be at least 8 characters long");
+        }
+        if (trimmed.length > 128) {
+          errors.push("Password must not exceed 128 characters");
+        }
+
+        // Complexity checks
+        if (!/[A-Z]/.test(trimmed)) {
+          errors.push("Password must contain at least one uppercase letter");
+        }
+        if (!/[a-z]/.test(trimmed)) {
+          errors.push("Password must contain at least one lowercase letter");
+        }
+        if (!/[0-9]/.test(trimmed)) {
+          errors.push("Password must contain at least one number");
+        }
+        if (!/[^A-Za-z0-9]/.test(trimmed)) {
+          errors.push("Password must contain at least one special character");
+        }
+
+        // Check for common weak patterns
+        const weakPatterns = [
+          /^(.)\1+$/, // All same character
+          /^(012|123|234|345|456|567|678|789|890)+/, // Sequential numbers
+          /^(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)+/i, // Sequential letters
+        ];
+
+        for (const pattern of weakPatterns) {
+          if (pattern.test(trimmed)) {
+            errors.push(
+              "Password contains weak patterns (sequential or repeated characters)",
+            );
+            break;
+          }
+        }
+
+        // Check for common passwords
+        const commonPasswords = [
+          "password",
+          "password123",
+          "12345678",
+          "qwerty",
+          "abc123",
+          "letmein",
+          "welcome",
+          "admin",
+        ];
+        if (
+          commonPasswords.some((weak) => trimmed.toLowerCase().includes(weak))
+        ) {
+          errors.push("Password contains common weak words");
+        }
+
+        return {
+          valid: errors.length === 0,
+          errors,
+          strength: scorePassword(trimmed),
+        };
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const emailEl = document.getElementById("email");
+        const newPwEl = document.getElementById("newPassword");
+        const confirmPwEl = document.getElementById("confirmPassword");
+        const saveBtn = document.getElementById("saveChangesBtn");
+        const emailStatEl = document.getElementById("accountEmailStat");
+        const pwStrengthEl = document.getElementById("pwStrength");
+        const pwStrengthLabelEl = document.getElementById("pwStrengthLabel");
+
+        onAuthStateChanged(auth, (user) => {
+          if (emailEl)
+            emailEl.value = user
+              ? escapeHtml(user.email)
+              : "No user signed in.";
+          if (emailStatEl)
+            emailStatEl.textContent = user?.email
+              ? escapeHtml(user.email)
+              : "-";
+        });
+
+        if (saveBtn) {
+          saveBtn.addEventListener("click", async (e) => {
+            const pw = newPwEl.value.trim();
+            const conf = confirmPwEl.value.trim();
+            const pwValidation = validatePassword(pw);
+            const isMobile = window.innerWidth <= 768;
+// Check if validation fails (for both mobile and desktop)
+            const hasValidationErrors =
+              !pw || !conf || !pwValidation.valid || pw !== conf;
+
+            // Show warning if validation fails
+            if (hasValidationErrors) {
+              e.preventDefault();
+let warningMessage = '<div style="text-align: left;">';
+
+              if (!pw) {
+                warningMessage +=
+                  '<p style="margin-bottom: 10px;">⚠️ Please enter a new password</p>';
+              } else if (!pwValidation.valid) {
+                warningMessage +=
+                  '<p style="margin-bottom: 10px; font-weight: 600;">Your password does not meet the requirements:</p><ul style="margin-left: 20px;">';
+                pwValidation.errors.forEach((err) => {
+                  warningMessage += `<li style="margin-bottom: 5px;">${escapeHtml(err)}</li>`;
+                });
+                warningMessage += "</ul>";
+              }
+
+              if (!conf) {
+                warningMessage +=
+                  '<p style="margin-top: 10px;">⚠️ Please confirm your password</p>';
+              } else if (pw && pw !== conf) {
+                warningMessage +=
+                  '<p style="margin-top: 10px;">⚠️ Passwords do not match</p>';
+              }
+
+              warningMessage += "</div>";
+
+              return Swal.fire({
+                icon: "warning",
+                title: "Cannot Save Changes",
+                html: warningMessage,
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            // Prevent concurrent password updates
+            if (isUpdatingPassword) {
+              return Swal.fire({
+                icon: "warning",
+                title: "Operation In Progress",
+                text: "A password update is already in progress. Please wait.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            const user = auth.currentUser;
+            const newPw = newPwEl.value.trim();
+            const confirmPw = confirmPwEl.value.trim();
+
+            // Basic validation
+            if (!newPw || !confirmPw) {
+              return Swal.fire({
+                icon: "error",
+                title: "Missing Fields",
+                text: "Please fill in both password fields.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            if (newPw !== confirmPw) {
+              return Swal.fire({
+                icon: "error",
+                title: "Password Mismatch",
+                text: "The passwords you entered do not match. Please try again.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            if (!user) {
+              return Swal.fire({
+                icon: "error",
+                title: "Not Authenticated",
+                text: "No authenticated user found. Please log in again.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            // Comprehensive password validation
+            const validation = validatePassword(newPw);
+            if (!validation.valid) {
+              const errorList = validation.errors
+                .map((err) => `• ${escapeHtml(err)}`)
+                .join("<br>");
+              return Swal.fire({
+                icon: "error",
+                title: "Invalid Password",
+                html: `<div style="text-align: left;">Your password does not meet the security requirements:<br><br>${errorList}</div>`,
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            }
+
+            // Prompt for current password to re-authenticate
+            const currentPasswordResult = await Swal.fire({
+              title: "Verify Your Identity",
+              html: `
+              <div style="text-align: left;">
+                <p style="margin-bottom: 15px;">For security, please enter your current password to continue:</p>
+                <input type="password" id="swal-current-password" class="swal2-input" placeholder="Current password" style="width: 85%; margin-bottom: 10px;">
+                <p style="font-size: 0.85rem; color: #5f6368; margin-top: 10px;">
+                  ℹ️ This verifies it's really you making this change.
+                </p>
+              </div>
+            `,
+              icon: "info",
+              showCancelButton: true,
+              confirmButtonColor: "#1a73e8",
+              cancelButtonColor: "#6b7280",
+              confirmButtonText: "Continue",
+              cancelButtonText: "Cancel",
+              focusConfirm: false,
+              preConfirm: () => {
+                const currentPassword = document.getElementById(
+                  "swal-current-password",
+                ).value;
+                if (!currentPassword) {
+                  Swal.showValidationMessage(
+                    "Please enter your current password",
+                  );
+                  return false;
+                }
+                return currentPassword;
+              },
+            });
+
+            if (!currentPasswordResult.isConfirmed) {
+              return;
+            }
+
+            const currentPassword = currentPasswordResult.value;
+
+            // Confirm password change
+            const confirmResult = await Swal.fire({
+              title: "Confirm Password Change",
+              html: `
+              <div style="text-align: left;">
+                <p>You are about to change your password.</p>
+                <p style="color: #1a73e8; font-weight: bold; margin-top: 10px;">✓ Identity verified</p>
+                <p style="margin-top: 10px;">Make sure you remember your new password!</p>
+              </div>
+            `,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonColor: "#1a73e8",
+              cancelButtonColor: "#6b7280",
+              confirmButtonText: "Yes, change password",
+              cancelButtonText: "Cancel",
+              focusCancel: true,
+            });
+
+            if (!confirmResult.isConfirmed) {
+              return;
+            }
+
+            isUpdatingPassword = true;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Updating...";
+
+            try {
+              // Re-authenticate user with current password
+              const credential = EmailAuthProvider.credential(
+                user.email,
+                currentPassword,
+              );
+
+              try {
+                await reauthenticateWithCredential(user, credential);
+} catch (reauthError) {
+let errorMessage =
+                  "The current password you entered is incorrect. Please try again.";
+                if (reauthError.code === "auth/wrong-password") {
+                  errorMessage =
+                    "The current password you entered is incorrect. Please try again.";
+                } else if (reauthError.code === "auth/too-many-requests") {
+                  errorMessage =
+                    "Too many failed attempts. Please try again later.";
+                } else if (reauthError.code === "auth/network-request-failed") {
+                  errorMessage =
+                    "Network error. Please check your connection and try again.";
+                }
+
+                throw new Error(errorMessage);
+              }
+
+              // Attempt password update
+              await updatePassword(user, newPw);
+
+              // Log to admin trail
+              try {
+                await trail.logAction(
+                  "PASSWORD_CHANGE",
+                  "USER",
+                  user.uid,
+                  {
+                    userEmail: user.email,
+                    passwordStrength: validation.strength,
+                    timestamp: new Date().toISOString(),
+                  },
+                  "HIGH",
+                  "AUTHENTICATION",
+                );
+              } catch (logError) {
+// Continue even if logging fails
+              }
+
+              // Success feedback
+              await Swal.fire({
+                icon: "success",
+                title: "Password Updated",
+                html: `
+                <div style="text-align: left;">
+                  <p>Your password has been changed successfully.</p>
+                  <p style="color: #1a73e8;">✓ Password strength: ${strengthLabel(validation.strength)}</p>
+                </div>
+              `,
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+
+              // Clear form fields
+              newPwEl.value = "";
+              confirmPwEl.value = "";
+
+              // Reset UI state
+              updateStrength("");
+              validateForm();
+            } catch (err) {
+// User-friendly error messages
+              let errorTitle = "Password Update Failed";
+              let errorMessage =
+                err.message || "Unable to update password. Please try again.";
+
+              if (err.code === "auth/weak-password") {
+                errorTitle = "Weak Password";
+                errorMessage =
+                  "The password you entered is too weak. Please choose a stronger password.";
+              } else if (err.code === "auth/network-request-failed") {
+                errorTitle = "Network Error";
+                errorMessage =
+                  "Unable to connect to the server. Please check your internet connection and try again.";
+              } else if (err.code === "auth/requires-recent-login") {
+                // This should not happen now, but keep as fallback
+                errorTitle = "Session Expired";
+                errorMessage = "Your session has expired. Please try again.";
+              } else if (!err.message) {
+                errorMessage = sanitizeInput(String(err));
+              }
+
+              await Swal.fire({
+                icon: "error",
+                title: errorTitle,
+                text: errorMessage,
+                confirmButtonText: "OK",
+                confirmButtonColor: "#1a73e8",
+              });
+            } finally {
+              isUpdatingPassword = false;
+              saveBtn.disabled = false;
+              saveBtn.textContent = "Save Changes";
+            }
+          });
+        }
+
+        // Visibility toggles
+        document.querySelectorAll(".toggle-visibility").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-target");
+            const input = document.getElementById(id);
+            if (!input) return;
+            const isPwd = input.type === "password";
+            input.type = isPwd ? "text" : "password";
+            btn.textContent = isPwd ? "Hide" : "Show";
+          });
+        });
+
+        function scorePassword(pw) {
+          if (!pw) return 0;
+          let score = 0;
+
+          // Length scoring (more granular)
+          if (pw.length >= 8) score++;
+          if (pw.length >= 12) score++;
+
+          // Character type scoring
+          const hasUpper = /[A-Z]/.test(pw);
+          const hasLower = /[a-z]/.test(pw);
+          const hasNumber = /[0-9]/.test(pw);
+          const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+
+          if (hasUpper) score++;
+          if (hasLower) score++;
+          if (hasNumber) score++;
+          if (hasSpecial) score++;
+
+          // Complexity bonus
+          const typeCount = [hasUpper, hasLower, hasNumber, hasSpecial].filter(
+            Boolean,
+          ).length;
+          if (typeCount >= 3 && pw.length >= 12) score++;
+
+          // Penalty for common patterns
+          const weakPatterns = [
+            /^(.)\1+$/, // Repeated characters
+            /^(012|123|234|345|456|567|678|789|890)+/, // Sequential numbers
+            /password|qwerty|abc123|letmein/i, // Common words
+          ];
+
+          for (const pattern of weakPatterns) {
+            if (pattern.test(pw)) {
+              score = Math.max(0, score - 2);
+              break;
+            }
+          }
+
+          return Math.min(Math.max(score, 0), 4);
+        }
+
+        function strengthLabel(score) {
+          const labels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
+          return labels[score] || "-";
+        }
+
+        function updateStrength(pw) {
+          const score = scorePassword(pw);
+          const label = strengthLabel(score);
+
+          if (pwStrengthEl) {
+            pwStrengthEl.classList.remove("s0", "s1", "s2", "s3", "s4");
+            pwStrengthEl.classList.add("s" + score);
+            const bars = pwStrengthEl.querySelectorAll(".pw-bars span");
+            bars.forEach((b, i) => b.classList.toggle("active", i < score));
+          }
+
+          if (pwStrengthLabelEl) {
+            pwStrengthLabelEl.textContent = "Strength: " + label;
+          }
+
+          const pwdStat = document.getElementById("passwordStrengthStat");
+          if (pwdStat) {
+            pwdStat.textContent = label;
+          }
+        }
+        function validateForm() {
+          const pw = newPwEl.value.trim();
+          const conf = confirmPwEl.value.trim();
+          const isMobile = window.innerWidth <= 768;
+
+          // Comprehensive validation check
+          const validation = validatePassword(pw);
+          const passwordsMatch = pw === conf;
+          const hasConfirmation = conf.length > 0;
+
+          // Enable save button only if all requirements are met
+          const isValid =
+            validation.valid &&
+            passwordsMatch &&
+            hasConfirmation &&
+            !isUpdatingPassword;
+
+          // Keep button enabled on all devices to allow SweetAlert feedback
+          // Use visual indicators instead of disabling
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            // Add visual indicator for invalid state
+            if (!isValid) {
+              saveBtn.style.opacity = "0.7";
+              saveBtn.style.cursor = "pointer";
+            } else {
+              saveBtn.style.opacity = "1";
+              saveBtn.style.cursor = "pointer";
+            }
+          }
+
+          // Show password validation warning on all devices (desktop, tablet, mobile)
+          const pwWarning = document.getElementById("pwValidationWarning");
+          const pwWarningText = document.getElementById("pwValidationText");
+
+          if (pw.length > 0 && !validation.valid) {
+            if (pwWarning && pwWarningText) {
+              pwWarning.style.display = "flex";
+              const errorList = validation.errors
+                .slice(0, 3)
+                .map((err) => escapeHtml(err))
+                .join("<br>");
+              pwWarningText.innerHTML = `<strong>Password requirements not met:</strong><br>${errorList}`;
+            }
+          } else {
+            if (pwWarning) pwWarning.style.display = "none";
+          }
+
+          // Show password match indicator
+          const matchIndicator = document.getElementById("pwMatchIndicator");
+          const matchIcon = matchIndicator?.querySelector(".match-icon");
+          const matchText = matchIndicator?.querySelector(".match-text");
+
+          if (hasConfirmation) {
+            if (matchIndicator) matchIndicator.style.display = "flex";
+            if (passwordsMatch) {
+              matchIndicator?.classList.remove("no-match");
+              matchIndicator?.classList.add("match");
+              if (matchIcon) matchIcon.textContent = "✓";
+              if (matchText) matchText.textContent = "Passwords match";
+            } else {
+              matchIndicator?.classList.remove("match");
+              matchIndicator?.classList.add("no-match");
+              if (matchIcon) matchIcon.textContent = "✗";
+              if (matchText) matchText.textContent = "Passwords do not match";
+            }
+          } else {
+            if (matchIndicator) matchIndicator.style.display = "none";
+          }
+
+          // Show validation hints if password is entered but invalid
+          if (pw.length > 0 && !validation.valid) {
+            const hintsList = validation.errors
+              .slice(0, 3)
+              .map((err) => `• ${err}`)
+              .join("\n");
+            newPwEl.title = `Password requirements:\n${hintsList}`;
+          } else {
+            newPwEl.title = "";
+          }
+        }
+
+        // Real-time validation with debounce for performance
+        let validationTimeout;
+        newPwEl.addEventListener("input", () => {
+          updateStrength(newPwEl.value);
+          clearTimeout(validationTimeout);
+          validationTimeout = setTimeout(() => validateForm(), 150);
+        });
+
+        confirmPwEl.addEventListener("input", () => {
+          clearTimeout(validationTimeout);
+          validationTimeout = setTimeout(() => validateForm(), 150);
+        });
+
+        // Prevent paste of potentially malicious content
+        [newPwEl, confirmPwEl].forEach((input) => {
+          input.addEventListener("paste", (e) => {
+            setTimeout(() => {
+              input.value = sanitizeInput(input.value);
+              updateStrength(newPwEl.value);
+              validateForm();
+            }, 0);
+          });
+        });
+
+        updateStrength("");
+        validateForm();
+      });
+    </script>
+  </head>
+  <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
+    <div class="sidebar">
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item active">Account</a>
+      <a class="nav-item logout" id="logout">Logout</a>
     </div>
-  </div>
+    <div class="main">
+      <div class="topbar">
+        <h1>Account Settings</h1>
+      </div>
+      <div class="content">
+        <section class="trail-stats">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div class="stat-content">
+                <h3 id="accountEmailStat">--</h3>
+                <p>Signed in as</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
+        <section
+          class="trail-filters"
+          style="
+            width: 100%;
+            margin-top: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          "
+        >
+          <div class="filters-header">
+            <h3>Password Settings</h3>
+          </div>
 
-  <script>
-    firebase.auth().onAuthStateChanged(function(user) {
-      const emailInput = document.getElementById("email");
+          <div class="filters-grid" style="grid-template-columns: 1fr">
+            <div class="filter-group">
+              <label for="email">Email</label>
+              <div
+                class="input-with-check"
+                title="Account name cannot be changed"
+              >
+                <input type="email" id="email" readonly />
+                <span class="check-icon">✓</span>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label for="newPassword">New Password</label>
+              <div class="input-with-toggle">
+                <input
+                  type="password"
+                  id="newPassword"
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  class="toggle-visibility"
+                  data-target="newPassword"
+                  aria-label="Toggle password visibility"
+                >
+                  Show
+                </button>
+              </div>
+              <div class="pw-strength" id="pwStrength" aria-live="polite">
+                <div class="pw-bars">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="pw-label" id="pwStrengthLabel">Strength: -</div>
+              </div>
+              <div
+                class="pw-validation-warning"
+                id="pwValidationWarning"
+                style="display: none"
+              >
+                <span class="warning-icon">⚠️</span>
+                <div class="warning-text" id="pwValidationText"></div>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <div class="input-with-toggle">
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  class="toggle-visibility"
+                  data-target="confirmPassword"
+                  aria-label="Toggle password visibility"
+                >
+                  Show
+                </button>
+              </div>
+              <div
+                class="pw-match-indicator"
+                id="pwMatchIndicator"
+                style="display: none"
+              >
+                <span class="match-icon"></span>
+                <span class="match-text"></span>
+              </div>
+            </div>
+          </div>
 
-      if (user) {
-        emailInput.value = user.email;
-      } else {
-        emailInput.value = "No user signed in.";
-      }
-    });
-
-    document.getElementById("saveChangesBtn").addEventListener("click", function () {
-      const user = firebase.auth().currentUser;
-      const newPassword = document.getElementById("newPassword").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
-
-      if (!newPassword || !confirmPassword) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Please fill in all password fields.',
-          confirmButtonText: 'Ok',
-          customClass: {
-            confirmButton: 'btn-blue'
-          }
-        });
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Passwords do not match.',
-          confirmButtonText: 'Ok',
-          customClass: {
-            confirmButton: 'btn-blue'
-          }
-        });
-        return;
-      }
-
-      if (user) {
-        user.updatePassword(newPassword).then(() => {
-          Swal.fire({
-            icon: 'success',
-            title: 'Success',
-            text: 'Password updated successfully.',
-            confirmButtonText: 'Ok',
-            customClass: {
-              confirmButton: 'btn-blue'
-            }
-          });
-          document.getElementById("newPassword").value = "";
-          document.getElementById("confirmPassword").value = "";
-        }).catch(error => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error: ' + error.message,
-            confirmButtonText: 'Ok',
-            customClass: {
-              confirmButton: 'btn-blue'
-            }
-          });
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No authenticated user.',
-          confirmButtonText: 'Ok',
-          customClass: {
-            confirmButton: 'btn-blue'
-          }
-        });
-      }
-    });
-
-    document.getElementById("homeBtn").addEventListener("click", function () {
-      window.location.href = "/pages/manage_events.html";
-    });
-  </script>
-
-  <style>
-  .swal2-confirm.btn-blue {
-    background-color: #007bff !important; /* Blue color */
-    border-color: #007bff !important;
-  }
-  .swal2-confirm.btn-blue:hover {
-    background-color: #0056b3 !important; /* Darker blue on hover */
-    border-color: #0056b3 !important;
-  }
-</style>
-
-</body>
+          <div class="filters-actions">
+            <button
+              type="button"
+              id="saveChangesBtn"
+              class="apply-btn"
+              disabled
+            >
+              Save Changes
+            </button>
+            <span></span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
 </html>

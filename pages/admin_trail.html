@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Trail - Audit Logs</title>
+    <link rel="stylesheet" href="/assets/css/style1.css" />
+    <link rel="stylesheet" href="/assets/css/admin-trail.css" />
+    <!-- SweetAlert2 (needed for logout confirmation) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/includes/swal-fix.js" defer></script>
+    <script type="module" src="/includes/logout.js" defer></script>
+    <script type="module" src="/includes/authguard.js" defer></script>
+    <script type="module" src="/includes/user.js" defer></script>
+    <script type="module" src="/includes/hamburger_menu.js" defer></script>
+  </head>
+
+  <body>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("pcuAdminRole") === "true") {
+            document.documentElement.classList.add("admin-user");
+            document.body.classList.add("admin-user");
+          }
+        } catch (_error) {}
+      })();
+    </script>
+    <div class="sidebar">
+      <a href="/pages/manage_events.html" class="logo-link">
+        <img src="/assets/images/pcu-logo.png" class="logo" alt="Logo" />
+      </a>
+      <a href="/pages/create_events.html" class="create-event-btn">
+        <span class="plus-icon">+</span> Create Event
+      </a>
+
+      <a href="/pages/manage_events.html" class="nav-item">Manage Events</a>
+      <a href="/relocation/location.html" class="nav-item">Buildings</a>
+      <a href="/relocation/relocation.html" class="nav-item">Relocation</a>
+      <a href="/pages/admin_trail.html" class="nav-item active">Admin Trail</a>
+      <a href="/pages/account_management.html" class="nav-item admin-only"
+        >Accounts Management</a
+      >
+      <a href="/pages/profile.html" class="nav-item">Account</a>
+      <a class="nav-item logout" id="logout">Logout</a>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <h1>Admin Trail - Audit Logs</h1>
+      </div>
+
+      <div class="content">
+        <!-- Statistics Section -->
+        <section class="trail-stats">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📊</div>
+              <div class="stat-content">
+                <h3 id="totalActionsCount">0</h3>
+                <p>Total Actions</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👥</div>
+              <div class="stat-content">
+                <h3 id="uniqueUsersCount">0</h3>
+                <p>Active Users</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🗓️</div>
+              <div class="stat-content">
+                <h3 id="todayActionsCount">0</h3>
+                <p>Today's Actions</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⚠️</div>
+              <div class="stat-content">
+                <h3 id="highSeverityCount">0</h3>
+                <p>High Severity</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Filters Section -->
+        <section class="trail-filters">
+          <div class="filters-header" id="filtersHeader">
+            <h3>Filter Audit Logs</h3>
+            <button id="resetFiltersBtn" class="reset-btn">
+              Reset Filters
+            </button>
+          </div>
+
+          <div class="filters-content" id="filtersContent">
+            <div class="filters-grid">
+              <div class="filter-group">
+                <label for="userFilter">User:</label>
+                <select id="userFilter">
+                  <option value="">All Users</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="actionFilter">Action:</label>
+                <select id="actionFilter">
+                  <option value="">All Actions</option>
+                  <option value="CREATE">Create</option>
+                  <option value="DELETE">Delete</option>
+                  <option value="EDIT">Edit</option>
+                  <option value="RENAME">Rename</option>
+                  <option value="RELOCATE">Relocate</option>
+                  <option value="VIEW">View</option>
+                  <option value="LOGIN">Login</option>
+                  <option value="LOGOUT">Logout</option>
+                  <option value="REGISTER">Register</option>
+                  <option value="LOGIN_FAILED">Login Failed</option>
+                  <option value="REGISTER_FAILED">Register Failed</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="categoryFilter">Category:</label>
+                <select id="categoryFilter">
+                  <option value="">All Categories</option>
+                  <option value="EVENT_MANAGEMENT">Event Management</option>
+                  <option value="BUILDING_MANAGEMENT">
+                    Building Management
+                  </option>
+                  <option value="RELOCATION">Relocation</option>
+                  <option value="AUTHENTICATION">Authentication</option>
+                  <option value="SECURITY">Security</option>
+                  <option value="SYSTEM">System</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="severityFilter">Severity:</label>
+                <select id="severityFilter">
+                  <option value="">All Levels</option>
+                  <option value="CRITICAL">Critical</option>
+                  <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="dateFromFilter">From Date:</label>
+                <input type="date" id="dateFromFilter" />
+              </div>
+
+              <div class="filter-group">
+                <label for="dateToFilter">To Date:</label>
+                <input type="date" id="dateToFilter" />
+              </div>
+            </div>
+
+            <div class="filters-actions">
+              <button id="applyFiltersBtn" class="apply-btn">
+                Apply Filters
+              </button>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search in logs..."
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Audit Logs Section -->
+        <section class="audit-logs-section">
+          <div class="logs-header" id="logsHeader">
+            <h3>Audit Logs</h3>
+            <div class="logs-controls">
+              <select id="logsPerPage">
+                <option value="25">25 per page</option>
+                <option value="50" selected>50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+              <button id="exportLogsBtn" class="export-btn">Export CSV</button>
+              <button id="archiveLogsBtn" class="archive-btn">
+                📦 Archive Old
+              </button>
+              <button id="cleanupLogsBtn" class="cleanup-btn">
+                🗑️ Cleanup
+              </button>
+              <button id="refreshLogsBtn" class="refresh-btn">
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="logs-content-wrapper" id="logsContentWrapper">
+            <div class="logs-container">
+              <div class="logs-loading" id="logsLoading">
+                <div class="loading-spinner"></div>
+                <p>Loading audit logs...</p>
+              </div>
+
+              <div
+                class="logs-table-container"
+                id="logsTableContainer"
+                style="display: none"
+              >
+                <table class="logs-table" id="logsTable">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>User</th>
+                      <th>Action</th>
+                      <th>Entity</th>
+                      <th>Category</th>
+                      <th>Severity</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logsTableBody">
+                    <!-- Logs will be populated here -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="logs-pagination" id="logsPagination">
+                <button id="prevPageBtn" class="page-btn">← Previous</button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button id="nextPageBtn" class="page-btn">Next →</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Log Details Modal (Hidden by default) -->
+        <div class="log-details-modal" id="logDetailsModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Log Details</h3>
+              <button class="modal-close" id="modalCloseBtn">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+              <!-- Log details will be populated here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+
+      document.addEventListener("DOMContentLoaded", async () => {
+
+        try {
+          const { firebaseConfig } = await import(
+            "/includes/firebaseConfig.js"
+          );
+          const { initializeApp, getApp } = await import(
+            "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js"
+          );
+          const { getAuth, onAuthStateChanged } = await import(
+            "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js"
+          );
+          const { getDatabase, ref, get, remove } = await import(
+            "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js"
+          );
+
+          // Initialize Firebase
+          let app;
+          try {
+            app = initializeApp(firebaseConfig);
+
+          } catch (error) {
+            if (error.code === "app/duplicate-app") {
+              app = getApp();
+
+            } else {
+
+              throw error;
+            }
+          }
+
+          const auth = getAuth(app);
+          const db = getDatabase(app);
+
+          class AdminTrailDashboard {
+            constructor() {
+              this.currentLogs = [];
+              this.filteredLogs = [];
+              this.currentPage = 1;
+              this.logsPerPage = 50;
+              this.totalPages = 1;
+              this.uniqueUsers = new Set();
+              this.maxLogsToLoad = 1000; // Limit for Firebase free tier
+
+              this.initializeElements();
+              this.attachEventListeners();
+              this.initializeDashboard();
+            }
+
+            initializeElements() {
+              this.userFilter = document.getElementById("userFilter");
+              this.actionFilter = document.getElementById("actionFilter");
+              this.categoryFilter = document.getElementById("categoryFilter");
+              this.severityFilter = document.getElementById("severityFilter");
+              this.dateFromFilter = document.getElementById("dateFromFilter");
+              this.dateToFilter = document.getElementById("dateToFilter");
+              this.searchInput = document.getElementById("searchInput");
+
+              this.logsPerPageSelect = document.getElementById("logsPerPage");
+              this.logsLoading = document.getElementById("logsLoading");
+              this.logsTableContainer =
+                document.getElementById("logsTableContainer");
+              this.logsTableBody = document.getElementById("logsTableBody");
+              this.logsPagination = document.getElementById("logsPagination");
+              this.prevPageBtn = document.getElementById("prevPageBtn");
+              this.nextPageBtn = document.getElementById("nextPageBtn");
+              this.pageInfo = document.getElementById("pageInfo");
+
+              this.modal = document.getElementById("logDetailsModal");
+
+              // Mobile filters toggle elements
+              this.filtersHeader = document.getElementById("filtersHeader");
+              this.filtersContent = document.getElementById("filtersContent");
+
+              // Mobile logs toggle elements
+              this.logsHeader = document.getElementById("logsHeader");
+              this.logsContentWrapper =
+                document.getElementById("logsContentWrapper");
+
+              this.modalBody = document.getElementById("modalBody");
+              this.modalCloseBtn = document.getElementById("modalCloseBtn");
+
+              this.totalActionsCount =
+                document.getElementById("totalActionsCount");
+              this.uniqueUsersCount =
+                document.getElementById("uniqueUsersCount");
+              this.todayActionsCount =
+                document.getElementById("todayActionsCount");
+              this.highSeverityCount =
+                document.getElementById("highSeverityCount");
+            }
+
+            attachEventListeners() {
+              document
+                .getElementById("applyFiltersBtn")
+                .addEventListener("click", () => this.applyFilters());
+              document
+                .getElementById("resetFiltersBtn")
+                .addEventListener("click", (e) => {
+                  e.stopPropagation(); // Prevent triggering the header click
+                  this.resetFilters();
+                });
+              this.searchInput.addEventListener("input", () =>
+                this.applyFilters(),
+              );
+              this.logsPerPageSelect.addEventListener("change", (e) => {
+                this.logsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.renderLogs();
+              });
+
+              this.prevPageBtn.addEventListener("click", () =>
+                this.goToPreviousPage(),
+              );
+              this.nextPageBtn.addEventListener("click", () =>
+                this.goToNextPage(),
+              );
+
+              this.modalCloseBtn.addEventListener("click", () =>
+                this.closeModal(),
+              );
+              this.modal.addEventListener("click", (e) => {
+                if (e.target === this.modal) this.closeModal();
+              });
+
+              document
+                .getElementById("refreshLogsBtn")
+                .addEventListener("click", () => this.loadDashboard());
+              document
+                .getElementById("exportLogsBtn")
+                .addEventListener("click", () => this.exportLogs());
+              document
+                .getElementById("archiveLogsBtn")
+                .addEventListener("click", () => this.archiveOldLogs());
+              document
+                .getElementById("cleanupLogsBtn")
+                .addEventListener("click", () => this.cleanupOldLogs());
+
+              // Mobile filters toggle - only on mobile screens
+              this.filtersHeader.addEventListener("click", (e) => {
+                // Only toggle on mobile view (768px and below)
+                if (window.innerWidth <= 768) {
+                  // Don't toggle if clicking the reset button
+                  if (
+                    e.target.id !== "resetFiltersBtn" &&
+                    !e.target.closest("#resetFiltersBtn")
+                  ) {
+                    this.toggleFilters();
+                  }
+                }
+              });
+
+              // Mobile logs toggle - only on mobile screens
+              this.logsHeader.addEventListener("click", (e) => {
+                // Only toggle on mobile view (768px and below)
+                if (window.innerWidth <= 768) {
+                  // Don't toggle if clicking buttons or select
+                  if (!e.target.closest(".logs-controls")) {
+                    this.toggleLogs();
+                  }
+                }
+              });
+
+              // Check on resize if we need to reset collapsed state
+              window.addEventListener("resize", () => {
+                if (window.innerWidth > 768) {
+                  // Remove collapsed class on desktop
+                  this.filtersHeader.classList.remove("collapsed");
+                  this.filtersContent.classList.remove("collapsed");
+                  this.logsHeader.classList.remove("collapsed");
+                  this.logsContentWrapper.classList.remove("collapsed");
+                }
+              });
+            }
+
+            toggleFilters() {
+              this.filtersHeader.classList.toggle("collapsed");
+              this.filtersContent.classList.toggle("collapsed");
+            }
+
+            toggleLogs() {
+              this.logsHeader.classList.toggle("collapsed");
+              this.logsContentWrapper.classList.toggle("collapsed");
+            }
+
+            async initializeDashboard() {
+              try {
+                this.showLoading();
+
+                const user = auth.currentUser;
+
+                if (!user) {
+
+                  await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                      reject(new Error("Authentication timeout"));
+                    }, 15000);
+
+                    onAuthStateChanged(auth, (authUser) => {
+                      clearTimeout(timeout);
+
+                      if (authUser) {
+                        resolve(authUser);
+                      } else {
+                        reject(new Error("User not authenticated"));
+                      }
+                    });
+                  });
+                }
+
+                await this.loadDashboard();
+              } catch (error) {
+
+                this.hideLoading();
+                await Swal.fire({
+                  title: "Initialization Failed",
+                  text: "Failed to initialize admin trail. Please try again.",
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              }
+            }
+
+            async loadDashboard() {
+              try {
+                this.showLoading();
+
+                const adminTrailRef = ref(db, "adminTrail");
+                // Fetch all logs and limit client-side to avoid index requirement
+                const snapshot = await get(adminTrailRef);
+
+                if (snapshot.exists()) {
+                  const data = snapshot.val();
+
+                  this.currentLogs = Object.entries(data).map(
+                    ([key, value]) => ({
+                      id: key,
+                      ...value,
+                    }),
+                  );
+
+                  // Sort by timestamp (newest first)
+                  this.currentLogs.sort(
+                    (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+                  );
+
+                  // Limit to most recent logs client-side
+                  if (this.currentLogs.length > this.maxLogsToLoad) {
+
+                    this.currentLogs = this.currentLogs.slice(
+                      0,
+                      this.maxLogsToLoad,
+                    );
+                  }
+
+                } else {
+
+                  this.currentLogs = [];
+                }
+
+                this.updateStats();
+                this.populateUserFilter();
+                this.populateActionFilter();
+                this.populateCategoryFilter();
+                this.applyFilters();
+              } catch (error) {
+
+                await Swal.fire({
+                  title: "Load Failed",
+                  text: "Failed to load audit logs: " + error.message,
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              }
+            }
+
+            updateStats() {
+              const today = new Date().toISOString().split("T")[0];
+
+              this.totalActionsCount.textContent = this.currentLogs.length;
+
+              this.uniqueUsers.clear();
+              this.currentLogs.forEach((log) =>
+                this.uniqueUsers.add(log.userEmail || log.userId),
+              );
+              this.uniqueUsersCount.textContent = this.uniqueUsers.size;
+
+              const todayActions = this.currentLogs.filter((log) => {
+                let logDate = log.date;
+                if (!logDate && log.timestamp) {
+                  // Parse ISO timestamp to get date
+                  try {
+                    const date = new Date(log.timestamp);
+                    if (!isNaN(date.getTime())) {
+                      logDate = date.toISOString().split("T")[0];
+                    }
+                  } catch (e) {
+                    // If parsing fails, skip
+                  }
+                }
+                return logDate === today;
+              });
+              this.todayActionsCount.textContent = todayActions.length;
+
+              const highSeverityActions = this.currentLogs.filter(
+                (log) => log.severity === "HIGH",
+              );
+              this.highSeverityCount.textContent = highSeverityActions.length;
+            }
+
+            populateUserFilter() {
+              this.userFilter.innerHTML = '<option value="">All Users</option>';
+
+              Array.from(this.uniqueUsers)
+                .sort()
+                .forEach((user) => {
+                  const option = document.createElement("option");
+                  option.value = user;
+                  option.textContent = user;
+                  this.userFilter.appendChild(option);
+                });
+            }
+
+            populateActionFilter() {
+              if (!this.actionFilter) {
+                return;
+              }
+
+              const previousValue = this.actionFilter.value;
+              const actions = new Set();
+
+              this.currentLogs.forEach((log) => {
+                if (log?.action) {
+                  actions.add(String(log.action));
+                }
+              });
+
+              this.actionFilter.innerHTML = '<option value="">All Actions</option>';
+
+              Array.from(actions)
+                .sort((a, b) => a.localeCompare(b))
+                .forEach((action) => {
+                  const option = document.createElement("option");
+                  option.value = action;
+                  option.textContent = this.formatActionLabel(action);
+                  this.actionFilter.appendChild(option);
+                });
+
+              if (previousValue && actions.has(previousValue)) {
+                this.actionFilter.value = previousValue;
+              }
+            }
+
+            populateCategoryFilter() {
+              if (!this.categoryFilter) {
+                return;
+              }
+
+              const previousValue = this.categoryFilter.value;
+              const categories = new Set();
+
+              this.currentLogs.forEach((log) => {
+                const category = (log?.category || "").trim();
+                if (category) {
+                  categories.add(category);
+                }
+              });
+
+              this.categoryFilter.innerHTML = '<option value="">All Categories</option>';
+
+              Array.from(categories)
+                .sort((a, b) => a.localeCompare(b))
+                .forEach((category) => {
+                  const option = document.createElement("option");
+                  option.value = category;
+                  option.textContent = this.formatCategoryLabel(category);
+                  this.categoryFilter.appendChild(option);
+                });
+
+              if (previousValue && categories.has(previousValue)) {
+                this.categoryFilter.value = previousValue;
+              }
+            }
+
+            applyFilters() {
+              let filtered = [...this.currentLogs];
+
+              if (this.userFilter.value) {
+                filtered = filtered.filter(
+                  (log) =>
+                    log.userEmail === this.userFilter.value ||
+                    log.userId === this.userFilter.value,
+                );
+              }
+
+              if (this.actionFilter.value) {
+                filtered = filtered.filter(
+                  (log) => String(log.action || "") === this.actionFilter.value,
+                );
+              }
+
+              if (this.categoryFilter.value) {
+                filtered = filtered.filter((log) => {
+                  const logCategory = String(log.category || "").trim();
+                  const filterCategory = this.categoryFilter.value.trim();
+                  return logCategory === filterCategory;
+                });
+              }
+
+              if (this.severityFilter.value) {
+                filtered = filtered.filter(
+                  (log) => log.severity === this.severityFilter.value,
+                );
+              }
+
+              if (this.dateFromFilter.value) {
+                const fromDate = this.dateFromFilter.value;
+                filtered = filtered.filter((log) => {
+                  const logDate = log.date || log.timestamp?.split("T")[0];
+                  return logDate >= fromDate;
+                });
+              }
+
+              if (this.dateToFilter.value) {
+                const toDate = this.dateToFilter.value;
+                filtered = filtered.filter((log) => {
+                  const logDate = log.date || log.timestamp?.split("T")[0];
+                  return logDate <= toDate;
+                });
+              }
+
+              if (this.searchInput.value) {
+                const searchTerm = this.searchInput.value.toLowerCase();
+                filtered = filtered.filter((log) =>
+                  JSON.stringify(log).toLowerCase().includes(searchTerm),
+                );
+              }
+
+              this.filteredLogs = filtered;
+              this.currentPage = 1;
+              this.renderLogs();
+            }
+
+            renderLogs() {
+              const startIndex = (this.currentPage - 1) * this.logsPerPage;
+              const endIndex = startIndex + this.logsPerPage;
+              const pageData = this.filteredLogs.slice(startIndex, endIndex);
+
+              this.totalPages = Math.ceil(
+                this.filteredLogs.length / this.logsPerPage,
+              );
+
+              this.logsTableBody.innerHTML = "";
+
+              if (pageData.length === 0) {
+                this.logsTableBody.innerHTML = `
+                <tr>
+                  <td colspan="7" class="no-logs">No logs found matching your criteria.</td>
+                </tr>
+              `;
+              } else {
+                pageData.forEach((log) => {
+                  const row = this.createLogRow(log);
+                  this.logsTableBody.appendChild(row);
+                });
+              }
+
+              this.updatePagination();
+              this.hideLoading();
+            }
+
+            createLogRow(log) {
+              const row = document.createElement("tr");
+              row.classList.add("log-row");
+              row.classList.add(`severity-${log.severity?.toLowerCase()}`);
+
+              // Fix timestamp parsing
+              let timestamp = "Invalid Date";
+              try {
+                if (log.timestamp) {
+                  const date = new Date(log.timestamp);
+                  if (!isNaN(date.getTime())) {
+                    timestamp = date.toLocaleString();
+                  }
+                }
+              } catch (e) {
+
+              }
+
+              const userDisplay =
+                log.userName || log.userEmail || log.userId || "Unknown";
+              // Show entity ID first, then type if ID is not available
+              const entityDisplay = log.entityId
+                ? log.entityId
+                : log.entityType || "N/A";
+
+              // Generate unique ID for this row
+              const rowId = `log-row-${log.id}`;
+
+              row.innerHTML = `
+              <td class="timestamp mobile-summary" data-row-id="${rowId}">
+                <div class="mobile-row-header">
+                  <span class="mobile-primary">${this.escapeHtml(log.action)}</span>
+                  <span class="mobile-chevron">▼</span>
+                </div>
+                <div class="mobile-secondary">${timestamp}</div>
+              </td>
+              <td class="timestamp desktop-only">${timestamp}</td>
+              <td class="user mobile-collapsible">${this.escapeHtml(userDisplay)}</td>
+              <td class="action mobile-collapsible">${this.escapeHtml(log.action)}</td>
+              <td class="entity mobile-collapsible">${this.escapeHtml(entityDisplay)}</td>
+              <td class="category mobile-collapsible">${this.escapeHtml(log.category || "N/A")}</td>
+              <td class="severity mobile-collapsible">
+                <span class="severity-badge ${log.severity?.toLowerCase()}">${log.severity || "N/A"}</span>
+              </td>
+              <td class="details mobile-collapsible">
+                <button class="details-btn" data-log-id="${log.id}">View Details</button>
+              </td>
+            `;
+
+              // Add mobile toggle functionality
+              const summaryCell = row.querySelector(".mobile-summary");
+              if (summaryCell) {
+                summaryCell.addEventListener("click", (e) => {
+                  // Only toggle on mobile
+                  if (window.innerWidth <= 768) {
+                    e.stopPropagation();
+                    this.toggleLogRow(row, rowId);
+                  }
+                });
+              }
+
+              const detailsBtn = row.querySelector(".details-btn");
+              detailsBtn.addEventListener("click", (e) => {
+                e.stopPropagation(); // Prevent row toggle when clicking button
+                this.showLogDetails(log);
+              });
+
+              return row;
+            }
+
+            toggleLogRow(row, rowId) {
+              const collapsibleCells = row.querySelectorAll(
+                ".mobile-collapsible",
+              );
+              const chevron = row.querySelector(".mobile-chevron");
+
+              row.classList.toggle("expanded");
+
+              if (row.classList.contains("expanded")) {
+                chevron.style.transform = "rotate(180deg)";
+              } else {
+                chevron.style.transform = "rotate(0deg)";
+              }
+            }
+
+            showLogDetails(log) {
+              const formattedDetails = this.formatLogDetails(log);
+              this.modalBody.innerHTML = formattedDetails;
+              this.modal.style.display = "flex";
+            }
+
+            formatLogDetails(log) {
+              // Fix timestamp parsing for details modal
+              let formattedTimestamp = "Invalid Date";
+              try {
+                if (log.timestamp) {
+                  const date = new Date(log.timestamp);
+                  if (!isNaN(date.getTime())) {
+                    formattedTimestamp = date.toLocaleString();
+                  }
+                }
+              } catch (e) {
+
+              }
+
+              return `
+              <div class="log-detail-section">
+                <h4>Basic Information</h4>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <label>Timestamp:</label>
+                    <span>${formattedTimestamp}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>User:</label>
+                    <span>${this.escapeHtml(log.userName || log.userEmail || log.userId || "Unknown")}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Action:</label>
+                    <span>${this.escapeHtml(log.action)}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Entity Type:</label>
+                    <span>${this.escapeHtml(log.entityType)}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Entity ID:</label>
+                    <span>${this.escapeHtml(log.entityId || "N/A")}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Severity:</label>
+                    <span class="severity-badge ${log.severity?.toLowerCase()}">${log.severity || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="log-detail-section">
+                <h4>Client Information</h4>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <label>Session ID:</label>
+                    <span>${this.escapeHtml(log.clientInfo?.sessionId || "N/A")}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>URL:</label>
+                    <span>${this.escapeHtml(log.clientInfo?.url || "N/A")}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="log-detail-section">
+                <h4>Details & Context</h4>
+                <div class="detail-grid">
+                  ${this.formatDetailsAsText(log.details)}
+                </div>
+              </div>
+            `;
+            }
+
+            closeModal() {
+              this.modal.style.display = "none";
+            }
+
+            resetFilters() {
+              this.userFilter.value = "";
+              this.actionFilter.value = "";
+              this.categoryFilter.value = "";
+              this.severityFilter.value = "";
+              this.dateFromFilter.value = "";
+              this.dateToFilter.value = "";
+              this.searchInput.value = "";
+
+              this.applyFilters();
+            }
+
+            updatePagination() {
+              this.pageInfo.textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+              this.prevPageBtn.disabled = this.currentPage <= 1;
+              this.nextPageBtn.disabled = this.currentPage >= this.totalPages;
+            }
+
+            goToPreviousPage() {
+              if (this.currentPage > 1) {
+                this.currentPage--;
+                this.renderLogs();
+              }
+            }
+
+            goToNextPage() {
+              if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this.renderLogs();
+              }
+            }
+
+            showLoading() {
+              this.logsLoading.style.display = "flex";
+              this.logsTableContainer.style.display = "none";
+            }
+
+            hideLoading() {
+              this.logsLoading.style.display = "none";
+              this.logsTableContainer.style.display = "block";
+            }
+
+            escapeHtml(text) {
+              const div = document.createElement("div");
+              div.textContent = text;
+              return div.innerHTML;
+            }
+
+            async checkAdminRole() {
+              try {
+                const user = auth.currentUser;
+                if (!user) {
+
+                  return false;
+                }
+
+                const userRef = ref(db, `users/${user.uid}/role`);
+                const snapshot = await get(userRef);
+
+                const role = snapshot.exists() ? snapshot.val() : null;
+
+                return role === "admin";
+              } catch (error) {
+
+                return false;
+              }
+            }
+
+            formatDetailsAsText(details) {
+              if (!details || Object.keys(details).length === 0) {
+                return '<div class="detail-item"><span>No additional details available.</span></div>';
+              }
+
+              let html = "";
+
+              // Keys to exclude from display (image URLs and other unnecessary data)
+              const excludedKeys = [
+                "imageUrl",
+                "image_url",
+                "imageURL",
+                "img_url",
+                "imgUrl",
+                "hasBase64Image",
+                "has_base64_image",
+              ];
+
+              // Helper function to format label text (convert camelCase to Title Case)
+              const formatLabel = (key) => {
+                return key
+                  .replace(/([A-Z])/g, " $1")
+                  .replace(/^./, (str) => str.toUpperCase())
+                  .trim();
+              };
+
+              // Helper function to format values
+              const formatValue = (value) => {
+                if (value === null || value === undefined) return "N/A";
+                if (typeof value === "boolean") return value ? "Yes" : "No";
+                if (typeof value === "object") {
+                  // Handle nested objects
+                  if (Array.isArray(value)) {
+                    return value.length > 0 ? value.join(", ") : "None";
+                  }
+                  // For objects, display key-value pairs
+                  return Object.entries(value)
+                    .filter(([k]) => !excludedKeys.includes(k))
+                    .map(([k, v]) => `${formatLabel(k)}: ${formatValue(v)}`)
+                    .join("; ");
+                }
+                return String(value);
+              };
+
+              // Iterate through details and create readable entries
+              for (const [key, value] of Object.entries(details)) {
+                // Skip excluded keys (like image URLs)
+                if (excludedKeys.includes(key)) {
+                  continue;
+                }
+
+                const label = formatLabel(key);
+                const displayValue = formatValue(value);
+
+                html += `
+                <div class="detail-item">
+                  <label>${this.escapeHtml(label)}:</label>
+                  <span>${this.escapeHtml(displayValue)}</span>
+                </div>
+              `;
+              }
+
+              return (
+                html ||
+                '<div class="detail-item"><span>No additional details available.</span></div>'
+              );
+            }
+
+            formatActionLabel(action) {
+              return String(action)
+                .toLowerCase()
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+            }
+
+            formatCategoryLabel(category) {
+              return String(category)
+                .toLowerCase()
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+            }
+
+            async archiveOldLogs() {
+              try {
+                // Check if user is admin
+                const isAdmin = await this.checkAdminRole();
+                if (!isAdmin) {
+                  await Swal.fire({
+                    title: "⛔ Access Denied",
+                    text: "Only administrators can archive audit logs.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                  });
+
+                  // Log unauthorized attempt
+                  const { AdminTrail } = await import(
+                    "/includes/adminTrail.js"
+                  );
+                  const trail = new AdminTrail(db, auth);
+                  await trail.logAction(
+                    "UNAUTHORIZED_LOG_DELETION_ATTEMPT",
+                    "ADMIN_TRAIL",
+                    null,
+                    {
+                      attemptedBy: auth.currentUser?.email || "Unknown",
+                      attemptedAction: "archive",
+                      status: "blocked",
+                      timestamp: new Date().toISOString(),
+                    },
+                    "CRITICAL",
+                    "SECURITY",
+                  );
+                  return;
+                }
+
+                const { value: daysToKeep } = await Swal.fire({
+                  title: "📦 Archive Old Logs",
+                  html: "How many days of logs do you want to keep?<br><br>Logs older than this will be downloaded as a backup JSON file.",
+                  input: "number",
+                  inputValue: 90,
+                  inputAttributes: {
+                    min: 1,
+                    max: 365,
+                    step: 1,
+                  },
+                  showCancelButton: true,
+                  confirmButtonText: "Archive",
+                  cancelButtonText: "Cancel",
+                  inputValidator: (value) => {
+                    if (!value || value < 1) {
+                      return "Please enter a valid number of days";
+                    }
+                  },
+                });
+
+                if (!daysToKeep) return; // User cancelled
+
+                const days = parseInt(daysToKeep) || 90;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+
+                // Get ALL logs (not just the limited ones in view)
+                const adminTrailRef = ref(db, "adminTrail");
+                const snapshot = await get(adminTrailRef);
+
+                if (!snapshot.exists()) {
+                  await Swal.fire({
+                    title: "No Logs Found",
+                    text: "No logs found to archive.",
+                    icon: "info",
+                    confirmButtonText: "OK",
+                  });
+                  return;
+                }
+
+                const allData = snapshot.val();
+                const oldLogs = {};
+                let count = 0;
+
+                // Find logs older than cutoff date
+                Object.entries(allData).forEach(([key, value]) => {
+                  const logDate = new Date(value.timestamp);
+                  if (logDate < cutoffDate) {
+                    oldLogs[key] = value;
+                    count++;
+                  }
+                });
+
+                if (count === 0) {
+                  await Swal.fire({
+                    title: "No Old Logs",
+                    text: `No logs older than ${days} days found.`,
+                    icon: "info",
+                    confirmButtonText: "OK",
+                  });
+                  return;
+                }
+
+                // Download old logs as JSON
+                const jsonData = JSON.stringify(oldLogs, null, 2);
+                const blob = new Blob([jsonData], { type: "application/json" });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                const fileName = `admin_trail_archive_${new Date().toISOString().split("T")[0]}.json`;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                // Log successful archive
+                const { AdminTrail } = await import("/includes/adminTrail.js");
+                const trail = new AdminTrail(db, auth);
+                await trail.logAction(
+                  "ADMIN_TRAIL_ARCHIVE",
+                  "ADMIN_TRAIL",
+                  null,
+                  {
+                    archivedCount: count,
+                    olderThan: days + " days",
+                    cutoffDate: cutoffDate.toISOString(),
+                    fileName: fileName,
+                    performedBy: auth.currentUser?.email || "Unknown",
+                  },
+                  "MEDIUM",
+                  "SYSTEM",
+                );
+
+                await Swal.fire({
+                  title: "✅ Archive Complete",
+                  html: `Successfully archived <strong>${count}</strong> logs older than ${days} days.<br><br>Backup file downloaded.<br><br>You can now use the Cleanup button to delete these logs from Firebase.`,
+                  icon: "success",
+                  confirmButtonText: "OK",
+                });
+              } catch (error) {
+
+                await Swal.fire({
+                  title: "Archive Failed",
+                  text: "Failed to archive logs: " + error.message,
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              }
+            }
+
+            async cleanupOldLogs() {
+              try {
+                // Check if user is admin
+                const isAdmin = await this.checkAdminRole();
+                if (!isAdmin) {
+                  await Swal.fire({
+                    title: "⛔ Access Denied",
+                    text: "Only administrators can delete audit logs.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                  });
+
+                  // Log unauthorized attempt
+                  const { AdminTrail } = await import(
+                    "/includes/adminTrail.js"
+                  );
+                  const trail = new AdminTrail(db, auth);
+                  await trail.logAction(
+                    "UNAUTHORIZED_LOG_DELETION_ATTEMPT",
+                    "ADMIN_TRAIL",
+                    null,
+                    {
+                      attemptedBy: auth.currentUser?.email || "Unknown",
+                      attemptedAction: "cleanup",
+                      status: "blocked",
+                      timestamp: new Date().toISOString(),
+                    },
+                    "CRITICAL",
+                    "SECURITY",
+                  );
+                  return;
+                }
+
+                const { value: daysToKeep } = await Swal.fire({
+                  title: "⚠️ Delete Old Logs",
+                  html: "<strong>WARNING:</strong> This will permanently delete old logs!<br><br>How many days of logs do you want to keep?<br><br>Logs older than this will be <strong>DELETED</strong> from Firebase.",
+                  input: "number",
+                  inputValue: 90,
+                  inputAttributes: {
+                    min: 1,
+                    max: 365,
+                    step: 1,
+                  },
+                  showCancelButton: true,
+                  confirmButtonText: "Continue",
+                  cancelButtonText: "Cancel",
+                  confirmButtonColor: "#ef4444",
+                  inputValidator: (value) => {
+                    if (!value || value < 1) {
+                      return "Please enter a valid number of days";
+                    }
+                  },
+                });
+
+                if (!daysToKeep) return; // User cancelled
+
+                const days = parseInt(daysToKeep) || 90;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+
+                // Double confirmation
+                const { isConfirmed } = await Swal.fire({
+                  title: "⚠️ FINAL WARNING",
+                  html: `You are about to permanently delete all logs older than <strong>${days} days</strong>.<br><br>
+                  ⚠️ Make sure you have archived them first!<br><br>
+                  ⚠️ This action <strong>CANNOT</strong> be undone.<br><br>
+                  Click <strong>Delete</strong> to proceed with deletion.`,
+                  icon: "warning",
+                  showCancelButton: true,
+                  confirmButtonText: "Delete Logs",
+                  cancelButtonText: "Cancel",
+                  confirmButtonColor: "#ef4444",
+                  cancelButtonColor: "#6b7280",
+                });
+
+                if (!isConfirmed) return;
+
+                this.showLoading();
+
+                // Get ALL logs
+                const adminTrailRef = ref(db, "adminTrail");
+                const snapshot = await get(adminTrailRef);
+
+                if (!snapshot.exists()) {
+                  this.hideLoading();
+                  await Swal.fire({
+                    title: "No Logs Found",
+                    text: "No logs found in the database.",
+                    icon: "info",
+                    confirmButtonText: "OK",
+                  });
+                  return;
+                }
+
+                const allData = snapshot.val();
+                const deletePromises = [];
+                const deletedLogIds = [];
+                let count = 0;
+
+                // Delete logs older than cutoff date
+                Object.entries(allData).forEach(([key, value]) => {
+                  const logDate = new Date(value.timestamp);
+                  if (logDate < cutoffDate) {
+                    const logRef = ref(db, `adminTrail/${key}`);
+                    deletePromises.push(remove(logRef));
+                    deletedLogIds.push(key);
+                    count++;
+                  }
+                });
+
+                if (count === 0) {
+                  this.hideLoading();
+                  await Swal.fire({
+                    title: "No Old Logs",
+                    text: `No logs older than ${days} days found.`,
+                    icon: "info",
+                    confirmButtonText: "OK",
+                  });
+                  return;
+                }
+
+                // Execute all deletions
+                await Promise.all(deletePromises);
+
+                // Calculate remaining logs
+                const totalLogsAfterCleanup =
+                  Object.keys(allData).length - count;
+
+                // Log successful cleanup
+                const { AdminTrail } = await import("/includes/adminTrail.js");
+                const trail = new AdminTrail(db, auth);
+                await trail.logAction(
+                  "ADMIN_TRAIL_CLEANUP",
+                  "ADMIN_TRAIL",
+                  null,
+                  {
+                    deletedCount: count,
+                    olderThan: days + " days",
+                    cutoffDate: cutoffDate.toISOString(),
+                    deletedLogIds: deletedLogIds.slice(0, 10), // First 10 IDs for reference
+                    performedBy: auth.currentUser?.email || "Unknown",
+                    totalLogsAfterCleanup: totalLogsAfterCleanup,
+                  },
+                  "HIGH",
+                  "SYSTEM",
+                );
+
+                // Show success and reload
+                await Swal.fire({
+                  title: "✅ Cleanup Complete",
+                  html: `Successfully deleted <strong>${count}</strong> logs older than ${days} days from Firebase.<br><br>
+                  This cleanup action has been logged.<br><br>
+                  Reloading dashboard...`,
+                  icon: "success",
+                  timer: 3000,
+                  timerProgressBar: true,
+                  showConfirmButton: false,
+                });
+
+                // Reload dashboard to show updated data
+                await this.loadDashboard();
+              } catch (error) {
+
+                this.hideLoading();
+                await Swal.fire({
+                  title: "Cleanup Failed",
+                  text: "Failed to cleanup logs: " + error.message,
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              }
+            }
+
+            async exportLogs() {
+              try {
+                const csvData = this.generateCSV();
+                const blob = new Blob([csvData], { type: "text/csv" });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `admin_trail_${new Date().toISOString().split("T")[0]}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                await Swal.fire({
+                  title: "✅ Export Complete",
+                  text: "Logs exported successfully!",
+                  icon: "success",
+                  timer: 2000,
+                  showConfirmButton: false,
+                });
+              } catch (error) {
+
+                await Swal.fire({
+                  title: "Export Failed",
+                  text: "Failed to export logs: " + error.message,
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              }
+            }
+
+            generateCSV() {
+              const headers = [
+                "Timestamp",
+                "User",
+                "User Email",
+                "Action",
+                "Entity Type",
+                "Entity ID",
+                "Category",
+                "Severity",
+                "Details",
+              ];
+              const rows = this.filteredLogs.map((log) => {
+                // Safely format timestamp
+                let timestamp = "Invalid Date";
+                try {
+                  if (log.timestamp) {
+                    const date = new Date(log.timestamp);
+                    if (!isNaN(date.getTime())) {
+                      timestamp = date.toISOString();
+                    } else if (typeof log.timestamp === "string") {
+                      timestamp = log.timestamp;
+                    }
+                  }
+                } catch (e) {
+                  timestamp = log.timestamp || "Invalid Date";
+                }
+
+                return [
+                  timestamp,
+                  log.userName || "Unknown",
+                  log.userEmail || "Unknown",
+                  log.action || "",
+                  log.entityType || "",
+                  log.entityId || "",
+                  log.category || "",
+                  log.severity || "",
+                  JSON.stringify(log.details || {}).replace(/"/g, '""'),
+                ];
+              });
+
+              const csvContent = [headers, ...rows]
+                .map((row) => row.map((field) => `"${field}"`).join(","))
+                .join("\n");
+
+              return csvContent;
+            }
+          }
+
+          const dashboard = new AdminTrailDashboard();
+
+        } catch (error) {
+
+          Swal.fire({
+            title: "Fatal Error",
+            text: "Failed to initialize admin trail: " + error.message,
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
+
